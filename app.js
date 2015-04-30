@@ -1,8 +1,6 @@
 var app = (function(){
 	var svg, border, gridRect, origin, cellSize, grid;
-
-	var gridArray;
-	var selectedCells = [];
+	var gridArray = [];
 
 	function initSvg(params){
 		svg = Snap('#canvas');
@@ -94,7 +92,19 @@ var app = (function(){
 	}
 
 	function initGridArray(cellSize){
+		var width = gridRect.getBBox().width / cellSize;
+		var height = gridRect.getBBox().height / cellSize;
 
+		console.log(width, height);
+
+		for(var row = 0; row < height; row++){
+			gridArray.push([]);
+			for(var col = 0; col < width; col++){
+				gridArray[row].push({ column: col, row: row });
+			}
+		}
+
+		console.log(gridArray);
 	}
 
 	function xOffset(x){ return origin.x + x; }
