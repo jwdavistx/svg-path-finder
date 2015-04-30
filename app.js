@@ -1,93 +1,88 @@
 var app = (function(){
-	var svg, border, perimeter;
+	var svg, border, gridRect, origin, cellSize, grid;
 
-	var gridSize = 0;
-
-	var origin = {
-		x: 20,
-		y: 20
-	};
-
-	var corners = {
-		topLeft: null,
-		topRight: null,
-		bottomRight: null,
-		bottomLeft: null
-	};
-
-	var border = {
-		width: 600,
-		height: 600,
-		strokeWidth: 10,
-		attr : {
-			fill: 'transparent',
-			stroke: 'black',
-			strokeWidth: 10,
-			opacity: 0.2
-		}
-	};
-
-	var borderStrokeOffset = border.attr.strokeWidth / 2;
-
-	function init(){
-		svg = Snap('#canvas')
-		svg.rect(origin.x, origin.y, border.width, border.height).attr(border.attr);
-
-		perimeter = svg.rect(
-			origin.x + borderStrokeOffset,
-			origin.y + borderStrokeOffset,
-			border.width - border.attr.strokeWidth,
-			border.height - border.attr.strokeWidth
-		).attr({
-			fill: 'transparent',
-			stroke: 'red',
-			strokeWidth: 1
-		}).mousedown(onMouseDownGrid);
-
-		var bbox = perimeter.getBBox();
-		var gridSizes = getCommonFactors(bbox.width, bbox.height);
-		//console.log(gridSizes);		
-		gridSize = gridSizes[3] //5
-		drawGrid(gridSize);
-
-		//drawBox(0, 0);
+	//debugging stuff
+	function getGridRect(){
+		return gridRect;
 	}
 
-	function dummyBoxes(){
-		var bbox = perimeter.getBBox();
-		var width = bbox.width + bbox.x;
-		var height = bbox.height + bbox.y;
+	function initSvg(params){
+		svg = Snap('#canvas');
 
-		for(var count = 0; count < 10; count++){
-			var x = getValidGridPoint();
-			var y = getValidGridPoint();
-			//console.log(x + ', ' + y);
-			drawBox(x, y);
+		//New local origin
+		origin = {
+			x: params.x,
+			y: params.y
+		};
+
+		//Draw perimeter of grid container
+		gridRect = svg.rect(
+			origin.x,
+			origin.y,
+			params.width,
+			params.height
+		).attr(params.gridAttr);
+
+		grid = svg.group(gridRect).mousedown(onMouseDownGrid);
+
+		//Determine common factors of the height and width so that the grid cell are always square
+		var gridSizes = getCommonFactors(params.width, params.height);
+		cellSize = gridSizes[10];
+		console.log('cellSize:' + cellSize)
+		drawGrid(cellSize);
+
+		if(params.showBorder){
+			var strokeWidthOffset = params.borderAttr.strokeWidth / 2;
+
+			svg.rect(
+				origin.x - strokeWidthOffset, 
+				params.y - strokeWidthOffset, 
+				params.width + params.borderAttr.strokeWidth, 
+				params.height + params.borderAttr.strokeWidth)
+			.attr(params.borderAttr);	
 		}
 	}
 
 	function onMouseDownGrid(mouseEvent, x, y){
-		console.log('(' + x + ', ' + y + ')');
+		//console.log('(' + x + ', ' + y + ')');
+		var localX = Math.floor(x / cellSize)  * cellSize;
+		var localY = Math.floor(y / cellSize) * cellSize;
+		//highlightTopLeft(localX, localY);
+		highlightCell(localX, localY);
 	}
 
-	function drawGrid(size){
-		var bbox = perimeter.getBBox();
-		//console.log(bbox);
+	function highlightCell(x, y){
+		svg.rect(x, y, cellSize, cellSize).attr({
+			fill: 'yellow',
+			opacity: '0.2'
+		});
+	}
 
-		var gridAttr = { stroke: 'red', strokeWidth: .5};
-		var xOffset = size + bbox.x;
-		var yOffset = size + bbox.y;
-		var width = bbox.width + bbox.x;
-		var height = bbox.height + bbox.y;
+	function highlightTopLeft(x, y){
+		svg.circle(x, y, 3).attr({ fill: 'blue'});		
+	}
 
-		for(var col = xOffset; col < width; col += size){
-			svg.line(col, bbox.y, col, height).attr(gridAttr);
+	function drawGrid(cellSize){
+		var bbox = gridRect.getBBox();
+		var attr = { stroke: 'red', strokeWidth: .5 };
+		var left = x(cellSize);
+		var top = y(cellSize);
+		var width = x(bbox.width);
+		var height = y(bbox.height);
+
+		for(var col = left; col < width; col += cellSize){
+			var l = svg.line(col, bbox.y, col, height).attr(attr);
+			grid.group(l);
 		}
 
-		for(var row = yOffset; row < height; row += size){
-			svg.line(bbox.x, row, width, row).attr(gridAttr);
+		for(var row = top; row < height; row += cellSize){
+			var l = svg.line(bbox.x, row, width, row).attr(attr);
+			grid.group(l);
 		}
 	}
+
+	function x(x){ return origin.x + x; }
+	function y(y){ return origin.y + y; }
 
 	function drawBox(x, y){
 		var box = {
@@ -100,19 +95,11 @@ var app = (function(){
 			}
 		};
 
-		svg.rect(getValueOffset(x), getValueOffset(y), box.width, box.height).attr(box.attr);
-	}
-
-	function getValueOffset(value){
-		return value + origin.x + borderStrokeOffset;
+		svg.rect(x, y, box.width, box.height).attr(box.attr);
 	}
 
 	function getRandomHexValue(){
 		return '#' + (Math.random() * 0xFFFFFF << 0).toString(16);
-	}
-
-	function getRandomInteger(min, max){
-		return (Math.floor(Math.random() * (max - min + 1)) + min);
 	}
 
 	function getValidGridPoint(){
@@ -146,10 +133,31 @@ var app = (function(){
 	}
 
 	return{
-		init : init
+		initSvg : initSvg,
+		gridRect: getGridRect
 	}
 })();
 
 $(function(){
-	app.init();
+	app.initSvg({ 
+		x: 20, 
+		y: 20, 
+		width: 600, 
+		height: 600,
+		gridAttr : {
+			fill: 'transparent',
+			stroke: 'red',
+			strokeWidth: 1
+		},
+		showBorder: false,
+		borderAttr : {
+			fill: 'transparent',
+			stroke: 'black',
+			strokeWidth: 10,
+			opacity: 0.2
+		}
+	});
+
+	//for debugging stuff
+	window.app = app;
 });
