@@ -11,7 +11,7 @@ var app = (function(){
 			y: params.y
 		};
 
-		//Draw perimeter of grid container
+		//Draw grid perimeter
 		gridRect = svg.rect(
 			origin.x,
 			origin.y,
@@ -23,7 +23,7 @@ var app = (function(){
 
 		//Determine common factors of the height and width so that the grid cell are always square
 		var gridSizes = getCommonFactors(params.width, params.height);
-		console.log(gridSizes);
+		//console.log(gridSizes);
 		cellSize = gridSizes[12];
 		console.log('cellSize:' + cellSize)
 
@@ -42,7 +42,31 @@ var app = (function(){
 		}
 	}
 
+	//TODO
+	//Bounds checking!
+	function screenToGrid(x, y){
+		//console.log('(' + x + ', ' + y + ')');
+		//HEY STUPID!  This is not gonna work if there's no offset from the actual origin!  So, whatever, make that work better later/
+		//Just always use an offset for now with the same x, y values!
+		var localX = xOffset((Math.floor(x / cellSize)  * cellSize)) - cellSize;
+		var localY = yOffset((Math.floor(y / cellSize) * cellSize)) - cellSize;
+
+		//console.log('(local:' + localX + ', local:' + localY + ')');
+
+		var row = Math.floor(localX / cellSize);
+		var column = Math.floor(localY / cellSize);
+
+		//console.log('(gridX:' + gridX + ', gridY:' + gridY + ')');
+
+		return { row: row, column: column };
+	}
+
+	function gridToScreen(column, row){
+
+	}
+
 	function onMouseDownGrid(mouseEvent, x, y){
+		screenToGrid(x, y);
 		//console.log('(' + x + ', ' + y + ')');
 
 		//HEY STUPID!  This is not gonna work if there's no offset from the actual origin!  So, whatever, make that work better later/
@@ -54,14 +78,15 @@ var app = (function(){
 		//TODO
 		//Also need to do bounds checking for clicks on perimeter!
 
-		highlightCell(localX, localY);
+
+		selectCell(localX, localY);
 	}
 
 	function onMouseDownSelected(mouseEvent, x, y){
 		this.remove();
 	}
 
-	function highlightCell(x, y){
+	function selectCell(x, y){
 		var handle = svg.circle(x, y, 3).attr({ fill: 'blue'});
 		var highlight = svg.rect(x, y, cellSize, cellSize).attr({
 			fill: 'yellow',
@@ -78,33 +103,29 @@ var app = (function(){
 		var left = xOffset(cellSize);
 		var top = yOffset(cellSize);
 		var width = xOffset(bbox.width);
-		var height = yOffset(bbox.height);
+		var height = yOffset(bbox.height);	
 
 		for(var col = left; col < width; col += cellSize){
-			var l = svg.line(col, bbox.y, col, height).attr(attr);
-			grid.group(l);
+			var columnLine = svg.line(col, bbox.y, col, height).attr(attr);
+			grid.group(columnLine);
 		}
 
 		for(var row = top; row < height; row += cellSize){
-			var l = svg.line(bbox.x, row, width, row).attr(attr);
-			grid.group(l);
+			var rowLine = svg.line(bbox.x, row, width, row).attr(attr);
+			grid.group(rowLine);
 		}
 	}
 
 	function initGridArray(cellSize){
-		var width = gridRect.getBBox().width / cellSize;
-		var height = gridRect.getBBox().height / cellSize;
+		var maxCols = gridRect.getBBox().width / cellSize;
+		var maxRows = gridRect.getBBox().height / cellSize;
 
-		console.log(width, height);
-
-		for(var row = 0; row < height; row++){
+		for(var row = 0; row < maxRows; row++){
 			gridArray.push([]);
-			for(var col = 0; col < width; col++){
-				gridArray[row].push({ column: col, row: row });
+			for(var col = 0; col < maxCols; col++){
+				gridArray[row].push({ column: col, row: row, isSelected: false });
 			}
 		}
-
-		console.log(gridArray);
 	}
 
 	function xOffset(x){ return origin.x + x; }
