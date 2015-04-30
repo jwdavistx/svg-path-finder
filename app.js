@@ -27,7 +27,8 @@ var app = (function(){
 
 		//Determine common factors of the height and width so that the grid cell are always square
 		var gridSizes = getCommonFactors(params.width, params.height);
-		cellSize = gridSizes[10];
+		console.log(gridSizes);
+		cellSize = gridSizes[12];
 		console.log('cellSize:' + cellSize)
 		drawGrid(cellSize);
 
@@ -44,10 +45,16 @@ var app = (function(){
 	}
 
 	function onMouseDownGrid(mouseEvent, x, y){
-		//console.log('(' + x + ', ' + y + ')');
-		var localX = Math.floor(x / cellSize)  * cellSize;
-		var localY = Math.floor(y / cellSize) * cellSize;
-		//highlightTopLeft(localX, localY);
+		console.log('(' + x + ', ' + y + ')');
+
+		//HEY STUPID!  This is not gonna work if there's no offset from the actual origin!  So, whatever, make that work better later/
+		//Just always use an offset for now with the same x, y values!
+		var localX = xOffset((Math.floor(x / cellSize)  * cellSize)) - cellSize;
+		var localY = yOffset((Math.floor(y / cellSize) * cellSize)) - cellSize;
+
+		console.log('(local:' + localX + ', local:' + localY + ')');
+
+		highlightTopLeft(localX, localY);
 		highlightCell(localX, localY);
 	}
 
@@ -65,10 +72,10 @@ var app = (function(){
 	function drawGrid(cellSize){
 		var bbox = gridRect.getBBox();
 		var attr = { stroke: 'red', strokeWidth: .5 };
-		var left = x(cellSize);
-		var top = y(cellSize);
-		var width = x(bbox.width);
-		var height = y(bbox.height);
+		var left = xOffset(cellSize);
+		var top = yOffset(cellSize);
+		var width = xOffset(bbox.width);
+		var height = yOffset(bbox.height);
 
 		for(var col = left; col < width; col += cellSize){
 			var l = svg.line(col, bbox.y, col, height).attr(attr);
@@ -81,8 +88,8 @@ var app = (function(){
 		}
 	}
 
-	function x(x){ return origin.x + x; }
-	function y(y){ return origin.y + y; }
+	function xOffset(x){ return origin.x + x; }
+	function yOffset(y){ return origin.y + y; }
 
 	function drawBox(x, y){
 		var box = {
@@ -100,12 +107,6 @@ var app = (function(){
 
 	function getRandomHexValue(){
 		return '#' + (Math.random() * 0xFFFFFF << 0).toString(16);
-	}
-
-	function getValidGridPoint(){
-		var max = perimeter.getBBox().width - gridSize;
-		var min = origin.x + gridSize;
-		return (Math.floor(Math.random() * (max - min + 1)) + min) * gridSize;
 	}
 
 	function getFactors(number){
