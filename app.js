@@ -25,7 +25,7 @@ var app = (function(){
 		var gridSizes = getCommonFactors(params.width, params.height);
 		//console.log(gridSizes);
 		cellSize = gridSizes[12];
-		console.log('cellSize:' + cellSize)
+		//console.log('cellSize:' + cellSize)
 
 		drawGrid(cellSize);
 		initGridArray(cellSize);
@@ -42,44 +42,37 @@ var app = (function(){
 		}
 	}
 
-	//TODO
-	//Bounds checking!
 	function screenToGrid(x, y){
-		//console.log('(' + x + ', ' + y + ')');
-		//HEY STUPID!  This is not gonna work if there's no offset from the actual origin!  So, whatever, make that work better later/
-		//Just always use an offset for now with the same x, y values!
-		var localX = xOffset((Math.floor(x / cellSize)  * cellSize)) - cellSize;
-		var localY = yOffset((Math.floor(y / cellSize) * cellSize)) - cellSize;
+		var localX = x - (x % cellSize);
+		var localY = y - (y % cellSize);
 
-		//console.log('(local:' + localX + ', local:' + localY + ')');
+		//Round down because were assuming a top-left corner as the origin
+		var column = Math.floor(localX / cellSize) ;
+		var row = Math.floor(localY / cellSize) ;
 
-		var row = Math.floor(localX / cellSize);
-		var column = Math.floor(localY / cellSize);
+		//Make this smarter later!
+		if(column < 0) column = 0;
+		if(row < 0) row = 0;
 
-		//console.log('(gridX:' + gridX + ', gridY:' + gridY + ')');
+		console.log(column, row);
 
-		return { row: row, column: column };
+		return { column: column, row: row };
 	}
 
+	//Get absolute screen screen coordinates for top-left corner of cell at [column, row]
 	function gridToScreen(column, row){
+		var x = xOffset(column * cellSize);
+		var y = yOffset(row * cellSize);
 
+		return{ x: x, y: y };
 	}
 
 	function onMouseDownGrid(mouseEvent, x, y){
-		screenToGrid(x, y);
-		//console.log('(' + x + ', ' + y + ')');
+		//Should there be a better way to translate this value?  Seems like we don't need to know anything abuot the grid yet. Just the screen?
+		var cell = screenToGrid(x, y);
+		var coord = gridToScreen(cell.column, cell.row);
 
-		//HEY STUPID!  This is not gonna work if there's no offset from the actual origin!  So, whatever, make that work better later/
-		//Just always use an offset for now with the same x, y values!
-		var localX = xOffset((Math.floor(x / cellSize)  * cellSize)) - cellSize;
-		var localY = yOffset((Math.floor(y / cellSize) * cellSize)) - cellSize;
-		//console.log('(local:' + localX + ', local:' + localY + ')');
-
-		//TODO
-		//Also need to do bounds checking for clicks on perimeter!
-
-
-		selectCell(localX, localY);
+		selectCell(coord.x, coord.y);
 	}
 
 	function onMouseDownSelected(mouseEvent, x, y){
@@ -87,6 +80,7 @@ var app = (function(){
 	}
 
 	function selectCell(x, y){
+		//console.log(x, y);
 		var handle = svg.circle(x, y, 3).attr({ fill: 'blue'});
 		var highlight = svg.rect(x, y, cellSize, cellSize).attr({
 			fill: 'yellow',
@@ -94,6 +88,12 @@ var app = (function(){
 		});
 
 		svg.group(handle, highlight).mousedown(onMouseDownSelected);
+
+		var cell = screenToGrid(x, y);
+		gridArray[cell.row][cell.column].isSelected = true;
+
+		//console.log(cell);
+		//console.log(gridArray);
 	}
 
 	function drawGrid(cellSize){
