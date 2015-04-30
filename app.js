@@ -1,10 +1,8 @@
 var app = (function(){
 	var svg, border, gridRect, origin, cellSize, grid;
 
-	//debugging stuff
-	function getGridRect(){
-		return gridRect;
-	}
+	var gridArray;
+	var selectedCells = [];
 
 	function initSvg(params){
 		svg = Snap('#canvas');
@@ -30,7 +28,9 @@ var app = (function(){
 		console.log(gridSizes);
 		cellSize = gridSizes[12];
 		console.log('cellSize:' + cellSize)
+
 		drawGrid(cellSize);
+		initGridArray(cellSize);
 
 		if(params.showBorder){
 			var strokeWidthOffset = params.borderAttr.strokeWidth / 2;
@@ -45,33 +45,38 @@ var app = (function(){
 	}
 
 	function onMouseDownGrid(mouseEvent, x, y){
-		console.log('(' + x + ', ' + y + ')');
+		//console.log('(' + x + ', ' + y + ')');
 
 		//HEY STUPID!  This is not gonna work if there's no offset from the actual origin!  So, whatever, make that work better later/
 		//Just always use an offset for now with the same x, y values!
 		var localX = xOffset((Math.floor(x / cellSize)  * cellSize)) - cellSize;
 		var localY = yOffset((Math.floor(y / cellSize) * cellSize)) - cellSize;
+		//console.log('(local:' + localX + ', local:' + localY + ')');
 
-		console.log('(local:' + localX + ', local:' + localY + ')');
+		//TODO
+		//Also need to do bounds checking for clicks on perimeter!
 
-		highlightTopLeft(localX, localY);
 		highlightCell(localX, localY);
 	}
 
+	function onMouseDownSelected(mouseEvent, x, y){
+		this.remove();
+	}
+
 	function highlightCell(x, y){
-		svg.rect(x, y, cellSize, cellSize).attr({
+		var handle = svg.circle(x, y, 3).attr({ fill: 'blue'});
+		var highlight = svg.rect(x, y, cellSize, cellSize).attr({
 			fill: 'yellow',
 			opacity: '0.2'
 		});
-	}
 
-	function highlightTopLeft(x, y){
-		svg.circle(x, y, 3).attr({ fill: 'blue'});		
+		svg.group(handle, highlight).mousedown(onMouseDownSelected);
 	}
 
 	function drawGrid(cellSize){
 		var bbox = gridRect.getBBox();
 		var attr = { stroke: 'red', strokeWidth: .5 };
+
 		var left = xOffset(cellSize);
 		var top = yOffset(cellSize);
 		var width = xOffset(bbox.width);
@@ -86,6 +91,10 @@ var app = (function(){
 			var l = svg.line(bbox.x, row, width, row).attr(attr);
 			grid.group(l);
 		}
+	}
+
+	function initGridArray(cellSize){
+
 	}
 
 	function xOffset(x){ return origin.x + x; }
@@ -134,8 +143,7 @@ var app = (function(){
 	}
 
 	return{
-		initSvg : initSvg,
-		gridRect: getGridRect
+		initSvg : initSvg
 	}
 })();
 
@@ -158,7 +166,4 @@ $(function(){
 			opacity: 0.2
 		}
 	});
-
-	//for debugging stuff
-	window.app = app;
 });
