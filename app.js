@@ -23,9 +23,9 @@ var app = (function(){
 
 		//Determine common factors of the height and width so that the grid cell are always square
 		var gridSizes = getCommonFactors(params.width, params.height);
-		//console.log(gridSizes);
+		console.log(gridSizes);
 		cellSize = gridSizes[12];
-		//console.log('cellSize:' + cellSize)
+		console.log('cellSize:' + cellSize)
 
 		drawGrid(cellSize);
 		initGridArray(cellSize);
@@ -42,19 +42,28 @@ var app = (function(){
 		}
 	}
 
+	//Returns wrong values if x,y is already a top-left corner value!
 	function screenToGrid(x, y){
 		var localX = x - (x % cellSize);
 		var localY = y - (y % cellSize);
+		//var localX = Math.floor(x / cellSize) * cellSize;
+		//var localY = Math.floor(y / cellSize) * cellSize;
 
 		//Round down because were assuming a top-left corner as the origin
-		var column = Math.floor(localX / cellSize) ;
-		var row = Math.floor(localY / cellSize) ;
+		var column, row;
+		//console.log(x % cellSize, y % cellSize);
+		if(x === localX || y === localY){
+			console.log('on corner');
+			column = (localX / cellSize);
+			row = (localY / cellSize);			
+		} else{
+			console.log('not on corner');
+			column = (localX / cellSize) - 1;
+			row = (localY / cellSize) - 1;
+		}	
 
-		//Make this smarter later!
 		if(column < 0) column = 0;
 		if(row < 0) row = 0;
-
-		console.log(column, row);
 
 		return { column: column, row: row };
 	}
@@ -68,9 +77,12 @@ var app = (function(){
 	}
 
 	function onMouseDownGrid(mouseEvent, x, y){
+		console.log(x, y);
 		//Should there be a better way to translate this value?  Seems like we don't need to know anything abuot the grid yet. Just the screen?
 		var cell = screenToGrid(x, y);
 		var coord = gridToScreen(cell.column, cell.row);
+
+		console.log(cell);
 
 		selectCell(coord.x, coord.y);
 	}
@@ -80,7 +92,7 @@ var app = (function(){
 	}
 
 	function selectCell(x, y){
-		//console.log(x, y);
+		console.log(x, y);
 		var handle = svg.circle(x, y, 3).attr({ fill: 'blue'});
 		var highlight = svg.rect(x, y, cellSize, cellSize).attr({
 			fill: 'yellow',
@@ -90,10 +102,8 @@ var app = (function(){
 		svg.group(handle, highlight).mousedown(onMouseDownSelected);
 
 		var cell = screenToGrid(x, y);
-		gridArray[cell.row][cell.column].isSelected = true;
-
-		//console.log(cell);
-		//console.log(gridArray);
+		console.log(cell);
+		//gridArray[cell.row][cell.column].isSelected = true;
 	}
 
 	function drawGrid(cellSize){
