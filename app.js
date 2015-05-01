@@ -1,6 +1,7 @@
 var app = (function(){
-	var svg, border, gridRect, origin, tileSize, grid;
-	var tiles = [];
+	var svg, origin, border, gridRect, grid, tileSize;
+	var startTile = {}, endTile = {};
+	var tileMatrix = [];	
 
 	var tileType = Object.freeze({
 		empty: "empty",
@@ -29,11 +30,11 @@ var app = (function(){
 		grid = svg.group(gridRect).click(onClickGrid);
 
 		//Determine common factors of the height and width so that the tiles are always square
-		var gridSizes = getCommonFactors(params.width, params.height);
-		tileSize = gridSizes[12];
+		var validTileSizes = getCommonFactors(params.width, params.height);
+		tileSize = validTileSizes[12];
 
 		drawGrid(tileSize);
-		initTiles(tileSize);
+		initTilesMatrix(tileSize);
 
 		if(params.showBorder){
 			var strokeWidthOffset = params.borderAttr.strokeWidth / 2;
@@ -50,7 +51,6 @@ var app = (function(){
 	function screenToGrid(x, y){
 		var column, row;
 
-		//base case (top left corner)
 		if(x % tileSize === origin.x && y % tileSize === origin.y){
 			column = Math.floor(x / tileSize);
 			row = Math.floor(y / tileSize);                                    
@@ -81,42 +81,44 @@ var app = (function(){
 		updateTileType(this);
 	}
 
-	//Should probably do this in a way where we update the underlying tile matrix, and then 'refresh' the visuals, or something?
-	function updateTileType(tile){
-		var column = parseInt(tile.attr("column"))
-		var row = parseInt(tile.attr("row"));
-		var tileInfo = tiles[column][row];
-
-		switch (tileInfo.tileType){
-			case tileType.blocked:
-				tile.attr({ fill: 'lightgreen' });
-				tileInfo.tileType = tileType.start;
-			break;
-			case tileType.start:
-				tile.attr({ fill: 'red' });
-				tileInfo.tileType = tileType.end;
-			break;
-			case tileType.end:
-				tile.remove();
-				tileInfo.tileType = tileType.empty;
-				tileInfo.tile = null;
-			break;
-		}
-
-		//console.log(tiles);
-	}
-
+	//Need to find a smart way to coorelate the tileMatrix data to the rendering of the tiles.  Right now they're separate, annnnnd it sucks!
 	function createTile(column, row){
 		var coord = gridToScreen(column, row);
-		var tile = svg.rect(coord.x, coord.y, tileSize, tileSize).attr({ 
-			fill: 'black',
+		var tileRect = svg.rect(coord.x, coord.y, tileSize, tileSize).attr({ 
 			column: column,
 			row: row
 		});
 
-		tiles[column][row].tile = tile;
-		tiles[column][row].tileType = tileType.blocked;
-		tile.click(onClickTile);
+		tileMatrix[column][row].tileRect = tileRect;
+		tileRect.click(onClickTile);
+		updateTileType(tileRect);
+	}
+
+	//Need to find a smart way to coorelate the tileMatrix data to the rendering of the tiles.  Right now they're separate, annnnnd it sucks!
+	function updateTileType(tileRect){
+		var column = parseInt(tileRect.attr("column"))
+		var row = parseInt(tileRect.attr("row"));
+		var tileInfo = tileMatrix[column][row];
+
+		switch (tileInfo.tileType){
+			case tileType.empty:
+				tileRect.attr({ fill: 'black' });
+				tileInfo.tileType = tileType.blocked;
+			break;
+			case tileType.blocked:
+				tileRect.attr({ fill: 'lightgreen' });
+				tileInfo.tileType = tileType.start;
+			break;
+			case tileType.start:
+				tileRect.attr({ fill: 'red' });
+				tileInfo.tileType = tileType.end;
+			break;
+			case tileType.end:
+				tileRect.remove();
+				tileInfo.tileType = tileType.empty;
+				tileInfo.tile = null;
+			break;
+		}
 	}
 
 	function drawGrid(tileSize){
@@ -140,18 +142,18 @@ var app = (function(){
 		}
 	}
 
-	function initTiles(tileSize){
+	function initTilesMatrix(tileSize){
 		var maxCols = gridRect.getBBox().width / tileSize;
 		var maxRows = gridRect.getBBox().height / tileSize;
 
 		for(var col = 0; col < maxCols; col++){
-			tiles.push([]);
+			tileMatrix.push([]);
 			for(var row = 0; row < maxRows; row++){
-				tiles[col].push({ 
+				tileMatrix[col].push({ 
 					column: col, 
 					row: row, 
 					tileType: tileType.empty,
-					tile: null
+					tileRect: null
 				});
 			}
 		}
