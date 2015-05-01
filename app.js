@@ -1,6 +1,13 @@
 var app = (function(){
-	var svg, border, gridRect, origin, cellSize, grid;
-	var gridArray = [];
+	var svg, border, gridRect, origin, tileSize, grid;
+	var tiles = [];
+
+	var tileType = Object.freeze({
+		empty: "empty",
+		blocked: "blocked",
+		start: "start",
+		end: "end"
+	});
 
 	function initSvg(params){
 		svg = Snap('#canvas');
@@ -19,16 +26,14 @@ var app = (function(){
 			params.height
 		).attr(params.gridAttr);
 
-		grid = svg.group(gridRect).mousedown(onMouseDownGrid);
+		grid = svg.group(gridRect).click(onClickGrid);
 
-		//Determine common factors of the height and width so that the grid cell are always square
+		//Determine common factors of the height and width so that the tiles are always square
 		var gridSizes = getCommonFactors(params.width, params.height);
-		console.log(gridSizes);
-		cellSize = gridSizes[12];
-		console.log('cellSize:' + cellSize)
+		tileSize = gridSizes[12];
 
-		drawGrid(cellSize);
-		initGridArray(cellSize);
+		drawGrid(tileSize);
+		initTiles(tileSize);
 
 		if(params.showBorder){
 			var strokeWidthOffset = params.borderAttr.strokeWidth / 2;
@@ -46,107 +51,114 @@ var app = (function(){
 		var column, row;
 
 		//base case (top left corner)
-		if(x % cellSize == origin.x && y % cellSize == origin.y){
-			column = Math.floor(x / cellSize);
-			row = Math.floor(y / cellSize);                                    
+		if(x % tileSize === origin.x && y % tileSize === origin.y){
+			column = Math.floor(x / tileSize);
+			row = Math.floor(y / tileSize);                                    
 		} else{
-			var localX = x - ((x - origin.x) % cellSize);
-			var localY = y - ((y - origin.y) % cellSize);
+			var localX = x - ((x - origin.x) % tileSize);
+			var localY = y - ((y - origin.y) % tileSize);
 
-			column = Math.floor(localX / cellSize);
-			row = Math.floor(localY / cellSize);
+			column = Math.floor(localX / tileSize);
+			row = Math.floor(localY / tileSize);
 		}              
 
 		return { column: column, row: row };
     }
 
-
-	//Get absolute screen screen coordinates for top-left corner of cell at [column, row]
 	function gridToScreen(column, row){
-		var x = xOffset(column * cellSize);
-		var y = yOffset(row * cellSize);
+		var x = xOffset(column * tileSize);
+		var y = yOffset(row * tileSize);
 
 		return{ x: x, y: y };
 	}
 
-	function onMouseDownGrid(mouseEvent, x, y){
-		console.log(x, y);
-		//Should there be a better way to translate this value?  Seems like we don't need to know anything abuot the grid yet. Just the screen?
-		var cell = screenToGrid(x, y);
-		var coord = gridToScreen(cell.column, cell.row);
-
-		console.log(cell);
-
-		selectCell(coord.x, coord.y);
+	function onClickGrid(mouseEvent, x, y){
+		var tile = screenToGrid(x, y);
+		createTile(tile.column, tile.row);
 	}
 
-	function onMouseDownSelected(mouseEvent, x, y){
-		this.remove();
+	function onClickTile(mouseEvent, x, y){
+		updateTileType(this);
 	}
 
-	function selectCell(x, y){
-		console.log(x, y);
-		var handle = svg.circle(x, y, 3).attr({ fill: 'blue'});
-		var highlight = svg.rect(x, y, cellSize, cellSize).attr({
-			fill: 'yellow',
-			opacity: '0.2'
+	//Should probably do this in a way where we update the underlying tile matrix, and then 'refresh' the visuals, or something?
+	function updateTileType(tile){
+		var column = parseInt(tile.attr("column"))
+		var row = parseInt(tile.attr("row"));
+		var tileInfo = tiles[column][row];
+
+		switch (tileInfo.tileType){
+			case tileType.blocked:
+				tile.attr({ fill: 'lightgreen' });
+				tileInfo.tileType = tileType.start;
+			break;
+			case tileType.start:
+				tile.attr({ fill: 'red' });
+				tileInfo.tileType = tileType.end;
+			break;
+			case tileType.end:
+				tile.remove();
+				tileInfo.tileType = tileType.empty;
+				tileInfo.tile = null;
+			break;
+		}
+
+		//console.log(tiles);
+	}
+
+	function createTile(column, row){
+		var coord = gridToScreen(column, row);
+		var tile = svg.rect(coord.x, coord.y, tileSize, tileSize).attr({ 
+			fill: 'black',
+			column: column,
+			row: row
 		});
 
-		svg.group(handle, highlight).mousedown(onMouseDownSelected);
-
-		var cell = screenToGrid(x, y);
-		console.log(cell);
-		//gridArray[cell.row][cell.column].isSelected = true;
+		tiles[column][row].tile = tile;
+		tiles[column][row].tileType = tileType.blocked;
+		tile.click(onClickTile);
 	}
 
-	function drawGrid(cellSize){
+	function drawGrid(tileSize){
 		var bbox = gridRect.getBBox();
 		var attr = { stroke: 'red', strokeWidth: .5 };
 
-		var left = xOffset(cellSize);
-		var top = yOffset(cellSize);
+		var left = xOffset(tileSize);
+		var top = yOffset(tileSize);
 		var width = xOffset(bbox.width);
 		var height = yOffset(bbox.height);	
 
-		for(var col = left; col < width; col += cellSize){
+		//Draw just the interior rows/columns.  We don't need to re-draw the border
+		for(var col = left; col < width; col += tileSize){
 			var columnLine = svg.line(col, bbox.y, col, height).attr(attr);
 			grid.group(columnLine);
 		}
 
-		for(var row = top; row < height; row += cellSize){
+		for(var row = top; row < height; row += tileSize){
 			var rowLine = svg.line(bbox.x, row, width, row).attr(attr);
 			grid.group(rowLine);
 		}
 	}
 
-	function initGridArray(cellSize){
-		var maxCols = gridRect.getBBox().width / cellSize;
-		var maxRows = gridRect.getBBox().height / cellSize;
+	function initTiles(tileSize){
+		var maxCols = gridRect.getBBox().width / tileSize;
+		var maxRows = gridRect.getBBox().height / tileSize;
 
-		for(var row = 0; row < maxRows; row++){
-			gridArray.push([]);
-			for(var col = 0; col < maxCols; col++){
-				gridArray[row].push({ column: col, row: row, isSelected: false });
+		for(var col = 0; col < maxCols; col++){
+			tiles.push([]);
+			for(var row = 0; row < maxRows; row++){
+				tiles[col].push({ 
+					column: col, 
+					row: row, 
+					tileType: tileType.empty,
+					tile: null
+				});
 			}
 		}
 	}
 
 	function xOffset(x){ return origin.x + x; }
 	function yOffset(y){ return origin.y + y; }
-
-	function drawBox(x, y){
-		var box = {
-			width: gridSize,
-			height: gridSize,
-			attr: {
-				fill: getRandomHexValue(),
-				stroke: 'black',
-				strokeWidth: 1
-			}
-		};
-
-		svg.rect(x, y, box.width, box.height).attr(box.attr);
-	}
 
 	function getRandomHexValue(){
 		return '#' + (Math.random() * 0xFFFFFF << 0).toString(16);
@@ -199,5 +211,10 @@ $(function(){
 			strokeWidth: 10,
 			opacity: 0.2
 		}
+	});
+
+	$('svg').on('contextmenu', function(e){
+		//e.preventDefault();
+		//console.log(e);
 	});
 });
