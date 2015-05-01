@@ -42,31 +42,24 @@ var app = (function(){
 		}
 	}
 
-	//Returns wrong values if x,y is already a top-left corner value!
 	function screenToGrid(x, y){
-		var localX = x - (x % cellSize);
-		var localY = y - (y % cellSize);
-		//var localX = Math.floor(x / cellSize) * cellSize;
-		//var localY = Math.floor(y / cellSize) * cellSize;
-
-		//Round down because were assuming a top-left corner as the origin
 		var column, row;
-		//console.log(x % cellSize, y % cellSize);
-		if(x === localX || y === localY){
-			console.log('on corner');
-			column = (localX / cellSize);
-			row = (localY / cellSize);			
-		} else{
-			console.log('not on corner');
-			column = (localX / cellSize) - 1;
-			row = (localY / cellSize) - 1;
-		}	
 
-		if(column < 0) column = 0;
-		if(row < 0) row = 0;
+		//base case (top left corner)
+		if(x % cellSize == origin.x && y % cellSize == origin.y){
+			column = Math.floor(x / cellSize);
+			row = Math.floor(y / cellSize);                                    
+		} else{
+			var localX = x - ((x - origin.x) % cellSize);
+			var localY = y - ((y - origin.y) % cellSize);
+
+			column = Math.floor(localX / cellSize);
+			row = Math.floor(localY / cellSize);
+		}              
 
 		return { column: column, row: row };
-	}
+    }
+
 
 	//Get absolute screen screen coordinates for top-left corner of cell at [column, row]
 	function gridToScreen(column, row){
