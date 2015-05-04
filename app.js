@@ -1,5 +1,5 @@
 var app = (function(){
-	var svg, origin, border, gridRect, gridLines, tileSize;
+	var svg, origin, gridRect, gridLines, tileSize;
 	var startTile = {}, endTile = {};
 	var tileMatrix = [];
 
@@ -36,17 +36,6 @@ var app = (function(){
 
 		drawGrid(tileSize);
 		initTilesMatrix(tileSize);
-
-		if(params.showBorder){
-			var strokeWidthOffset = params.borderAttr.strokeWidth / 2;
-
-			svg.rect(
-				origin.x - strokeWidthOffset, 
-				params.y - strokeWidthOffset, 
-				params.width + params.borderAttr.strokeWidth, 
-				params.height + params.borderAttr.strokeWidth)
-			.attr(params.borderAttr);	
-		}
 	}
 
 	//Only works if there's no other screen changes (such as scrolling or DOM elements shifting the SVG element's position)
@@ -123,7 +112,7 @@ var app = (function(){
 				tileInfo.tileType = tileType.empty;
 			break;
 			case tileType.path:
-				tileRect.attr({ fill: 'yellow' });
+				tileRect.attr({ fill: 'yellow', opacity: '0.2' });
 			break;
 		}
 	}
@@ -194,15 +183,15 @@ var app = (function(){
 	}
 
 	function findPath(){
-		var walkabilityMatrix = buildWalkabilityMatrix();
 		//This doesn't seem to work?
+		//var walkabilityMatrix = buildWalkabilityMatrix();
 		//var grid = new PF.Grid(walkabilityMatrix);
+
 		var grid = new PF.Grid(tileMatrix.length, tileMatrix[0].length);
 		setWalkableTiles(grid);
 		var finder = new PF.AStarFinder();
 		var path = finder.findPath(0, 0, 10, 10, grid);
 
-		console.log(path);
 		drawPath(path);
 	}
 
@@ -255,13 +244,6 @@ $(function(){
 			fill: 'transparent',
 			stroke: 'red',
 			strokeWidth: 1
-		},
-		showBorder: false,
-		borderAttr : {
-			fill: 'transparent',
-			stroke: 'black',
-			strokeWidth: 10,
-			opacity: 0.2
 		}
 	});
 
