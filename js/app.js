@@ -1,7 +1,6 @@
 /// <reference path="./js/typings/snapsvg.d.ts" />
 var app = (function(){
 	var svg, origin, gridRect, gridLines, tileSize;
-	var startTile = [], endTile = [];
 	var tileMatrix = [];
 
 	var tileType = Object.freeze({
@@ -13,7 +12,7 @@ var app = (function(){
 	});
 
 	function initSvg(params){
-		svg = Snap('#canvas');
+		svg = Snap(params.element);
 				
 		//New local origin
 		origin = {
@@ -39,7 +38,7 @@ var app = (function(){
 		initTilesMatrix(tileSize);
 	}
 
-	//We're assuming the values coming in are relative to the view port, and not the screen.  If it were actually the screen, then this wouldn't work.
+	//We're assuming the values coming in are relative to the view port, and not the screen.  If it were actually screen coordinates, then this wouldn't work.
 	function screenToGrid(x, y){
 		var column, row;
 
@@ -79,7 +78,7 @@ var app = (function(){
 	}
 
 	function onClickEndTile(mouseEvent, x, y){
-		removeTile(this);
+		changeTileType(this, tileType.empty);
 	}
 
 	function onClickTileError(mouseEvent, x, y){
@@ -106,14 +105,18 @@ var app = (function(){
 	}
 
 	function changeTileType(tileRect, newType){
-		var column = tileRect.attr("column");
-		var row = tileRect.attr("row");
-		var currentType = tileMatrix[column][row].tileType;
+		if(newType === tileType.empty){
+			removeTile(tileRect)
+		} else {
+			var column = tileRect.attr("column");
+			var row = tileRect.attr("row");
+			var currentType = tileMatrix[column][row].tileType;
 
-		tileMatrix[column][row].tileType = newType;
-		tileRect.attr("fill", getTileColor(newType))
-			.unclick(getTileClickHandler(currentType))
-			.click(getTileClickHandler(newType));
+			tileMatrix[column][row].tileType = newType;
+			tileRect.attr("fill", getTileColor(newType))
+				.unclick(getTileClickHandler(currentType))
+				.click(getTileClickHandler(newType));
+		}
 	}
 
 	function getTileClickHandler(type){
@@ -202,18 +205,28 @@ var app = (function(){
 		//This doesn't seem to work?
 		//var walkabilityMatrix = buildWalkabilityMatrix();
 		//var grid = new PF.Grid(walkabilityMatrix);
-
+		var start = getTileByType(tileType.start);
+		var end = getTileByType(tileType.end);
 		var grid = new PF.Grid(tileMatrix.length, tileMatrix[0].length);
 		setWalkableTiles(grid);
+
 		var finder = new PF.AStarFinder();
-		console.log(startTile, endTile);
-		var path = finder.findPath(startTile[0], startTile[1], endTile[0], endTile[1], grid);
+		var path = finder.findPath(start[0], start[1], end[0], end[1], grid);
 
 		drawPath(path);
 	}
 
+	function getTileByType(type){
+		for(var c = 0; c < tileMatrix.length; c++){
+			for(var r = 0; r < tileMatrix[0].length; r++){
+				if( tileMatrix[c][r].tileType === type)
+					return [c, r];
+			}
+		}
+	}
+
 	function drawPath(path){
-		path.forEach(function(e, index, arr){
+		path.forEach(function(e){
 			createTile(e[0], e[1], tileType.path);
 		});
 	}
@@ -228,7 +241,8 @@ var app = (function(){
 })();
 
 $(function(){
-	app.initSvg({ 
+	app.initSvg({
+		element: '#grid',
 		x: 20, 
 		y: 20, 
 		width: 600, 

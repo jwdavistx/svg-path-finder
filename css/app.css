@@ -2,7 +2,7 @@ body{
 	margin: 0;
 }
 
-#canvas{
+svg {
 	width: 625px;
 	height: 625px;
 }
