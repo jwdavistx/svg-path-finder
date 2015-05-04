@@ -38,105 +38,6 @@ var app = (function(){
 		initTilesMatrix(tileSize);
 	}
 
-	//We're assuming the values coming in are relative to the view port, and not the screen.  If it were actually screen coordinates, then this wouldn't work.
-	function screenToGrid(x, y){
-		var column, row;
-
-		if(x % tileSize === origin.x && y % tileSize === origin.y){
-			column = Math.floor(x / tileSize);
-			row = Math.floor(y / tileSize);                                    
-		} else{
-			var localX = x - ((x - origin.x) % tileSize);
-			var localY = y - ((y - origin.y) % tileSize);
-
-			column = Math.floor(localX / tileSize);
-			row = Math.floor(localY / tileSize);
-		}              
-
-		return { column: column, row: row };
-    }
-
-	function gridToScreen(column, row){
-		var x = xOffset(column * tileSize);
-		var y = yOffset(row * tileSize);
-
-		return{ x: x, y: y };
-	}
-
-	function onClickGrid(mouseEvent, x, y){
-		//Use mouse position that's relative to the top left corner of viewport
-		var tile = screenToGrid(mouseEvent.pageX, mouseEvent.pageY);
-		createTile(tile.column, tile.row, tileType.blocked);
-	}
-
-	function onClickBlockedTile(mouseEvent, x, y){
-		changeTileType(this, tileType.start);
-	}
-
-	function onClickStartTile(mouseEvent, x, y){
-		changeTileType(this, tileType.end);
-	}
-
-	function onClickEndTile(mouseEvent, x, y){
-		changeTileType(this, tileType.empty);
-	}
-
-	function onClickTileError(mouseEvent, x, y){
-		console.error("Invalid tile type");
-	}
-
-	function createTile(column, row, type){
-		tileMatrix[column][row].tileType = type;
-
-		var coord = gridToScreen(column, row);
-		svg.rect(coord.x, coord.y, tileSize, tileSize).attr({
-			column: column,
-			row: row,
-			fill: getTileColor(type)
-		}).click(getTileClickHandler(type));
-	}
-
-	function removeTile(tileRect){
-		var column = tileRect.attr("column");
-		var row = tileRect.attr("row");
-
-		tileMatrix[column][row].tileType = tileType.empty;
-		tileRect.remove();
-	}
-
-	function changeTileType(tileRect, newType){
-		if(newType === tileType.empty){
-			removeTile(tileRect)
-		} else {
-			var column = tileRect.attr("column");
-			var row = tileRect.attr("row");
-			var currentType = tileMatrix[column][row].tileType;
-
-			tileMatrix[column][row].tileType = newType;
-			tileRect.attr("fill", getTileColor(newType))
-				.unclick(getTileClickHandler(currentType))
-				.click(getTileClickHandler(newType));
-		}
-	}
-
-	function getTileClickHandler(type){
-		switch(type){
-			case tileType.blocked: return onClickBlockedTile; break;
-			case tileType.start: return onClickStartTile; break;
-			case tileType.end: return onClickEndTile; break;
-			default: return onClickTileError; break;
-		}
-	}
-
-	function getTileColor(type){
-		switch(type){
-			case tileType.blocked: return "black"; break;
-			case tileType.start: return "lightgreen"; break;
-			case tileType.end: return "red"; break;
-			case tileType.path: return "yellow"; break;
-		}
-	}
-
 	function initTilesMatrix(tileSize){
 		var maxCols = gridRect.getBBox().width / tileSize;
 		var maxRows = gridRect.getBBox().height / tileSize;
@@ -147,7 +48,8 @@ var app = (function(){
 				tileMatrix[c].push({ 
 					column: c, 
 					row: r, 
-					tileType: tileType.empty
+					tileType: tileType.empty,
+					tileRect: null //Storing a reference to the svg element because I'm not sure of another way to keep track of them for now
 				});
 			}
 		}
@@ -173,6 +75,120 @@ var app = (function(){
 		}
 	}
 
+	//Assumes the values coming in are relative to the view port, and not the screen.  
+	//If it were actually screen coordinates, then this wouldn't work.
+	function screenToGrid(x, y){
+		var column, row;
+
+		if(x % tileSize === origin.x && y % tileSize === origin.y){
+			column = Math.floor(x / tileSize);
+			row = Math.floor(y / tileSize);                                    
+		} else{
+			var localX = x - ((x - origin.x) % tileSize);
+			var localY = y - ((y - origin.y) % tileSize);
+
+			column = Math.floor(localX / tileSize);
+			row = Math.floor(localY / tileSize);
+		}              
+
+		return { column: column, row: row };
+    }
+
+	function gridToScreen(column, row){
+		var x = xOffset(column * tileSize);
+		var y = yOffset(row * tileSize);
+
+		return{ x: x, y: y };
+	}
+
+	//Use mouse position that's relative to the top left corner of viewport
+	function onClickGrid(mouseEvent, x, y){
+		var tile = screenToGrid(mouseEvent.pageX, mouseEvent.pageY);
+		createTile(tile.column, tile.row, tileType.blocked);
+	}
+
+	function onClickBlockedTile(mouseEvent, x, y){
+		changeTileType(this, tileType.start);
+	}
+
+	function onClickStartTile(mouseEvent, x, y){
+		changeTileType(this, tileType.end);
+	}
+
+	function onClickEndTile(mouseEvent, x, y){
+		changeTileType(this, tileType.empty);
+	}
+
+	function onClickTileError(mouseEvent, x, y){
+		console.error("Invalid tile type");
+	}
+
+	function createTile(column, row, type){
+		
+
+		var coord = gridToScreen(column, row);
+		var tile = svg.rect(coord.x, coord.y, tileSize, tileSize).attr({
+			column: column,
+			row: row,
+			fill: getTileColor(type)
+		}).click(getTileClickHandler(type));
+
+		tileMatrix[column][row].tileType = type;
+		tileMatrix[column][row].tileRect = tile;
+	}
+
+	function removeTile(tileRect){
+		var column = tileRect.attr("column");
+		var row = tileRect.attr("row");
+
+		tileMatrix[column][row].tileType = tileType.empty;
+		tileRect.remove();
+		tileMatrix[column][row].tileRect = null;
+	}
+
+	function changeTileType(tileRect, newType){
+		if(newType === tileType.empty){
+			removeTile(tileRect)
+		} else {
+			var column = tileRect.attr("column");
+			var row = tileRect.attr("row");
+			var currentType = tileMatrix[column][row].tileType;
+
+			tileRect.attr("fill", getTileColor(newType))
+				.unclick(getTileClickHandler(currentType))
+				.click(getTileClickHandler(newType));
+
+			tileMatrix[column][row].tileType = newType;
+		}
+	}
+
+	function getTileByType(type){
+		for(var c = 0; c < tileMatrix.length; c++){
+			for(var r = 0; r < tileMatrix[0].length; r++){
+				if( tileMatrix[c][r].tileType === type)
+					return [c, r];
+			}
+		}
+	}
+
+	function getTileClickHandler(type){
+		switch(type){
+			case tileType.blocked: return onClickBlockedTile; break;
+			case tileType.start: return onClickStartTile; break;
+			case tileType.end: return onClickEndTile; break;
+			default: return onClickTileError; break;
+		}
+	}
+
+	function getTileColor(type){
+		switch(type){
+			case tileType.blocked: return "black"; break;
+			case tileType.start: return "lightgreen"; break;
+			case tileType.end: return "red"; break;
+			case tileType.path: return "yellow"; break;
+		}
+	}
+
 	function buildWalkabilityMatrix(){
 		var matrix = [];
 		var numCols = tileMatrix.length;
@@ -189,16 +205,12 @@ var app = (function(){
 	}
 
 	function setWalkableTiles(grid){
-		var numCols = tileMatrix.length;
-		var numRows = tileMatrix[0].length;
-
-		for(var c = 0; c < numCols; c++){
-			for(var r = 0; r < numRows; r++){
-				if (tileMatrix[c][r].tileType == tileType.blocked){
-					grid.setWalkableAt(c, r, false);
-				}
-			}
-		}
+		tileMatrix.forEach(function(tiles){
+			tiles.forEach(function(tile){
+				if (tileMatrix[tile.column][tile.row].tileType === tileType.blocked)
+					grid.setWalkableAt(tile.column, tile.row, false);
+			});
+		});
 	}
 
 	function findPath(){
@@ -216,18 +228,18 @@ var app = (function(){
 		drawPath(path);
 	}
 
-	function getTileByType(type){
-		for(var c = 0; c < tileMatrix.length; c++){
-			for(var r = 0; r < tileMatrix[0].length; r++){
-				if( tileMatrix[c][r].tileType === type)
-					return [c, r];
-			}
-		}
+	function drawPath(path){
+		//Draw path between start/end tiles
+		for(var i = 1; i < path.length - 1; i++)
+			createTile(path[i][0], path[i][1], tileType.path);
 	}
 
-	function drawPath(path){
-		path.forEach(function(e){
-			createTile(e[0], e[1], tileType.path);
+	function resetGrid(){
+		tileMatrix.forEach(function(tiles){
+			tiles.forEach(function(tile){
+				if(tile.tileType !== tileType.empty)
+					removeTile(tile.tileRect);
+			})
 		});
 	}
 
@@ -236,7 +248,8 @@ var app = (function(){
 
 	return{
 		initSvg : initSvg,
-		findPath : findPath
+		findPath : findPath,
+		resetGrid : resetGrid
 	}
 })();
 
@@ -254,11 +267,11 @@ $(function(){
 		}
 	});
 
-	$('svg').on('contextmenu', function(e){
-
+	$('#find-path').click(function(){
+		app.findPath();
 	});
 
-	$('button').click(function(){
-		app.findPath();
+	$('#reset').click(function(){
+		app.resetGrid();
 	});
 });
