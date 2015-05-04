@@ -1,6 +1,8 @@
+/// <reference path="./js/typings/snapsvg.d.ts" />
+
 var app = (function(){
 	var svg, origin, gridRect, gridLines, tileSize;
-	var startTile = {}, endTile = {};
+	var startTile = [], endTile = [];
 	var tileMatrix = [];
 
 	var tileType = Object.freeze({
@@ -13,13 +15,13 @@ var app = (function(){
 
 	function initSvg(params){
 		svg = Snap('#canvas');
-
+				
 		//New local origin
 		origin = {
 			x: params.x,
 			y: params.y
 		};
-
+		
 		//Draw grid perimeter
 		gridRect = svg.rect(
 			origin.x,
@@ -30,8 +32,8 @@ var app = (function(){
 
 		gridLines = svg.group(gridRect).click(onClickGrid);
 
-		//Determine common factors of the height and width so that the tiles are always square
-		var validTileSizes = getCommonFactors(params.width, params.height);
+		//Only allow square tiles
+		var validTileSizes = utils.getCommonFactors(params.width, params.height);
 		tileSize = validTileSizes[12];
 
 		drawGrid(tileSize);
@@ -84,7 +86,7 @@ var app = (function(){
 		tileMatrix[column][row].tileType = tileType;
 		tileRect.click(onClickTile);
 
-		//This doesn't make any sense to do right here.  Need to stop function chaining. This is baaaad
+		//This doesn't make any sense to do right here.  Need to stop function chaining.
 		updateTileType(tileRect);
 	}
 
@@ -102,10 +104,12 @@ var app = (function(){
 			case tileType.blocked:
 				tileRect.attr({ fill: 'lightgreen' });
 				tileInfo.tileType = tileType.start;
+				startTile = [column, row];
 			break;
 			case tileType.start:
 				tileRect.attr({ fill: 'red' });
 				tileInfo.tileType = tileType.end;
+				endTile = [column, row];
 			break;
 			case tileType.end:
 				tileRect.remove();
@@ -114,6 +118,23 @@ var app = (function(){
 			case tileType.path:
 				tileRect.attr({ fill: 'yellow', opacity: '0.2' });
 			break;
+		}
+	}
+
+	function initTilesMatrix(tileSize){
+		var maxCols = gridRect.getBBox().width / tileSize;
+		var maxRows = gridRect.getBBox().height / tileSize;
+
+		for(var c = 0; c < maxCols; c++){
+			tileMatrix.push([]);
+			for(var r = 0; r < maxRows; r++){
+				tileMatrix[c].push({ 
+					column: c, 
+					row: r, 
+					tileType: tileType.empty,
+					tileRect: null
+				});
+			}
 		}
 	}
 
@@ -165,23 +186,6 @@ var app = (function(){
 		}
 	}
 
-	function initTilesMatrix(tileSize){
-		var maxCols = gridRect.getBBox().width / tileSize;
-		var maxRows = gridRect.getBBox().height / tileSize;
-
-		for(var c = 0; c < maxCols; c++){
-			tileMatrix.push([]);
-			for(var r = 0; r < maxRows; r++){
-				tileMatrix[c].push({ 
-					column: c, 
-					row: r, 
-					tileType: tileType.empty,
-					tileRect: null
-				});
-			}
-		}
-	}
-
 	function findPath(){
 		//This doesn't seem to work?
 		//var walkabilityMatrix = buildWalkabilityMatrix();
@@ -190,7 +194,8 @@ var app = (function(){
 		var grid = new PF.Grid(tileMatrix.length, tileMatrix[0].length);
 		setWalkableTiles(grid);
 		var finder = new PF.AStarFinder();
-		var path = finder.findPath(0, 0, 10, 10, grid);
+		console.log(startTile, endTile);
+		var path = finder.findPath(startTile[0], startTile[1], endTile[0], endTile[1], grid);
 
 		drawPath(path);
 	}
@@ -203,30 +208,6 @@ var app = (function(){
 
 	function xOffset(x){ return origin.x + x; }
 	function yOffset(y){ return origin.y + y; }
-
-	function getFactors(number){
-		var factors = [],
-		quotient = 0;
-
-		for(var i = 1; i <= number; i++){
-			quotient = number/i;
-
-			if(quotient === Math.floor(quotient)){
-				factors.push(i); 
-			}
-		}
-
-  		return factors;
-	}
-
-	function getCommonFactors(num1, num2){
-		var arr1 = getFactors(num1);
-		var arr2 = getFactors(num2);
-
-		return arr1.filter(function(i){
-			return arr2.indexOf(i) != -1;
-		});
-	}
 
 	return{
 		initSvg : initSvg,
