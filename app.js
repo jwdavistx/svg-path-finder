@@ -1,13 +1,14 @@
 var app = (function(){
-	var svg, origin, border, gridRect, grid, tileSize;
+	var svg, origin, border, gridRect, gridLines, tileSize;
 	var startTile = {}, endTile = {};
-	var tileMatrix = [];	
+	var tileMatrix = [];
 
 	var tileType = Object.freeze({
-		empty: "empty",
-		blocked: "blocked",
-		start: "start",
-		end: "end"
+		empty: 1,
+		blocked: 2,
+		start: 3,
+		end: 4,
+		path: 5
 	});
 
 	function initSvg(params){
@@ -27,7 +28,7 @@ var app = (function(){
 			params.height
 		).attr(params.gridAttr);
 
-		grid = svg.group(gridRect).click(onClickGrid);
+		gridLines = svg.group(gridRect).click(onClickGrid);
 
 		//Determine common factors of the height and width so that the tiles are always square
 		var validTileSizes = getCommonFactors(params.width, params.height);
@@ -48,6 +49,7 @@ var app = (function(){
 		}
 	}
 
+	//Only works if there's no other screen changes (such as scrolling or DOM elements shifting the SVG element's position)
 	function screenToGrid(x, y){
 		var column, row;
 
@@ -74,15 +76,15 @@ var app = (function(){
 
 	function onClickGrid(mouseEvent, x, y){
 		var tile = screenToGrid(x, y);
-		createTile(tile.column, tile.row);
+		createTile(tile.column, tile.row, tileType.empty);
 	}
 
 	function onClickTile(mouseEvent, x, y){
 		updateTileType(this);
 	}
 
-	//Need to find a smart way to coorelate the tileMatrix data to the rendering of the tiles.  Right now they're separate, annnnnd it sucks!
-	function createTile(column, row){
+	//Need to find a smart way to coorelate the tileMatrix data to the drawing of the tiles.
+	function createTile(column, row, tileType){
 		var coord = gridToScreen(column, row);
 		var tileRect = svg.rect(coord.x, coord.y, tileSize, tileSize).attr({ 
 			column: column,
@@ -90,11 +92,14 @@ var app = (function(){
 		});
 
 		tileMatrix[column][row].tileRect = tileRect;
+		tileMatrix[column][row].tileType = tileType;
 		tileRect.click(onClickTile);
+
+		//This doesn't make any sense to do right here.  Need to stop function chaining. This is baaaad
 		updateTileType(tileRect);
 	}
 
-	//Need to find a smart way to coorelate the tileMatrix data to the rendering of the tiles.  Right now they're separate, annnnnd it sucks!
+	//Need to find a smart way to coorelate the tileMatrix data to the drawing of the tiles.
 	function updateTileType(tileRect){
 		var column = parseInt(tileRect.attr("column"))
 		var row = parseInt(tileRect.attr("row"));
@@ -116,7 +121,9 @@ var app = (function(){
 			case tileType.end:
 				tileRect.remove();
 				tileInfo.tileType = tileType.empty;
-				tileInfo.tile = null;
+			break;
+			case tileType.path:
+				tileRect.attr({ fill: 'yellow' });
 			break;
 		}
 	}
@@ -130,15 +137,42 @@ var app = (function(){
 		var width = xOffset(bbox.width);
 		var height = yOffset(bbox.height);	
 
-		//Draw just the interior rows/columns.  We don't need to re-draw the border
 		for(var col = left; col < width; col += tileSize){
 			var columnLine = svg.line(col, bbox.y, col, height).attr(attr);
-			grid.group(columnLine);
+			gridLines.group(columnLine);
 		}
 
 		for(var row = top; row < height; row += tileSize){
 			var rowLine = svg.line(bbox.x, row, width, row).attr(attr);
-			grid.group(rowLine);
+			gridLines.group(rowLine);
+		}
+	}
+
+	function buildWalkabilityMatrix(){
+		var matrix = [];
+		var numCols = tileMatrix.length;
+		var numRows = tileMatrix[0].length;
+
+		for(var r = 0; r < numRows; r++){
+			matrix.push([]);
+			for(var c = 0; c < numCols; c++){
+				matrix[r][c] = tileMatrix[c][r].tileType == tileType.blocked ? 1 : 0;
+			}
+		}
+
+		return matrix;
+	}
+
+	function setWalkableTiles(grid){
+		var numCols = tileMatrix.length;
+		var numRows = tileMatrix[0].length;
+
+		for(var c = 0; c < numCols; c++){
+			for(var r = 0; r < numRows; r++){
+				if (tileMatrix[c][r].tileType == tileType.blocked){
+					grid.setWalkableAt(c, r, false);
+				}
+			}
 		}
 	}
 
@@ -146,12 +180,12 @@ var app = (function(){
 		var maxCols = gridRect.getBBox().width / tileSize;
 		var maxRows = gridRect.getBBox().height / tileSize;
 
-		for(var col = 0; col < maxCols; col++){
+		for(var c = 0; c < maxCols; c++){
 			tileMatrix.push([]);
-			for(var row = 0; row < maxRows; row++){
-				tileMatrix[col].push({ 
-					column: col, 
-					row: row, 
+			for(var r = 0; r < maxRows; r++){
+				tileMatrix[c].push({ 
+					column: c, 
+					row: r, 
 					tileType: tileType.empty,
 					tileRect: null
 				});
@@ -159,12 +193,27 @@ var app = (function(){
 		}
 	}
 
+	function findPath(){
+		var walkabilityMatrix = buildWalkabilityMatrix();
+		//This doesn't seem to work?
+		//var grid = new PF.Grid(walkabilityMatrix);
+		var grid = new PF.Grid(tileMatrix.length, tileMatrix[0].length);
+		setWalkableTiles(grid);
+		var finder = new PF.AStarFinder();
+		var path = finder.findPath(0, 0, 10, 10, grid);
+
+		console.log(path);
+		drawPath(path);
+	}
+
+	function drawPath(path){
+		path.forEach(function(e, index, arr){
+			createTile(e[0], e[1], tileType.path);
+		});
+	}
+
 	function xOffset(x){ return origin.x + x; }
 	function yOffset(y){ return origin.y + y; }
-
-	function getRandomHexValue(){
-		return '#' + (Math.random() * 0xFFFFFF << 0).toString(16);
-	}
 
 	function getFactors(number){
 		var factors = [],
@@ -191,7 +240,8 @@ var app = (function(){
 	}
 
 	return{
-		initSvg : initSvg
+		initSvg : initSvg,
+		findPath : findPath
 	}
 })();
 
@@ -216,7 +266,10 @@ $(function(){
 	});
 
 	$('svg').on('contextmenu', function(e){
-		//e.preventDefault();
-		//console.log(e);
+
+	});
+
+	$('button').click(function(){
+		app.findPath();
 	});
 });
