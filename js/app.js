@@ -124,8 +124,6 @@ var app = (function(){
 	}
 
 	function createTile(column, row, type){
-		
-
 		var coord = gridToScreen(column, row);
 		var tile = svg.rect(coord.x, coord.y, tileSize, tileSize).attr({
 			column: column,
@@ -222,7 +220,10 @@ var app = (function(){
 		var grid = new PF.Grid(tileMatrix.length, tileMatrix[0].length);
 		setWalkableTiles(grid);
 
-		var finder = new PF.AStarFinder();
+		var finder = new PF.AStarFinder({
+			allowDiagonal: true,
+    		dontCrossCorners: true
+    	});
 		var path = finder.findPath(start[0], start[1], end[0], end[1], grid);
 
 		drawPath(path);
@@ -234,6 +235,23 @@ var app = (function(){
 			createTile(path[i][0], path[i][1], tileType.path);
 	}
 
+	function randomizeGrid(density){
+		var tile;
+		var blockedCount = 0;
+		var maxTiles = tileMatrix.length * tileMatrix[0].length;
+		if( density > maxTiles)
+			density = maxTiles
+		
+		while(blockedCount < density){
+			 tile = getRandomTile();
+
+			if(tile.tileType === tileType.empty){
+				createTile(tile.column, tile.row, tileType.blocked);
+				blockedCount++;
+			}
+		}
+	}
+
 	function resetGrid(){
 		tileMatrix.forEach(function(tiles){
 			tiles.forEach(function(tile){
@@ -243,13 +261,28 @@ var app = (function(){
 		});
 	}
 
+	// Returns a random integer between min (included) and max (excluded)
+	// Using Math.round() will give you a non-uniform distribution!
+	function getRandomInt(min, max) {
+		return Math.floor(Math.random() * (max - min)) + min;
+	}
+
+	function getRandomTile(){
+		var maxCols = tileMatrix.length;
+		var maxRows = tileMatrix[0].length;
+		var tile = tileMatrix[getRandomInt(0, maxCols)][getRandomInt(0, maxRows)];
+		//Adding 1 because the max is exclusive
+		return tile;
+	}
+
 	function xOffset(x){ return origin.x + x; }
 	function yOffset(y){ return origin.y + y; }
 
 	return{
 		initSvg : initSvg,
 		findPath : findPath,
-		resetGrid : resetGrid
+		resetGrid : resetGrid,
+		randomizeGrid : randomizeGrid
 	}
 })();
 
@@ -273,5 +306,9 @@ $(function(){
 
 	$('#reset').click(function(){
 		app.resetGrid();
+	});
+
+	$('#randomize').click(function(){
+		app.randomizeGrid(10);
 	});
 });
