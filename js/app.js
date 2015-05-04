@@ -65,34 +65,73 @@ var app = (function(){
 	}
 
 	function onClickGrid(mouseEvent, x, y){
-		//Use mouse position that's relative to the top left corner of view port
+		//Use mouse position that's relative to the top left corner of viewport
 		var tile = screenToGrid(mouseEvent.pageX, mouseEvent.pageY);
-		createTile(tile.column, tile.row, tileType.empty);
+		createTile(tile.column, tile.row, tileType.blocked);
 	}
 
-	function onClickTile(mouseEvent, x, y){
-		console.log('click');
+	function onClickBlockedTile(mouseEvent, x, y){
+		changeTileType(this, tileType.start);
 	}
 
-	function createTile(column, row, tileType){
-		tileMatrix[column][row].tileType = tileType;
+	function onClickStartTile(mouseEvent, x, y){
+		changeTileType(this, tileType.end);
+	}
+
+	function onClickEndTile(mouseEvent, x, y){
+		removeTile(this);
+	}
+
+	function onClickTileError(mouseEvent, x, y){
+		console.error("Invalid tile type");
+	}
+
+	function createTile(column, row, type){
+		tileMatrix[column][row].tileType = type;
 
 		var coord = gridToScreen(column, row);
 		svg.rect(coord.x, coord.y, tileSize, tileSize).attr({
 			column: column,
 			row: row,
-			fill: getTileColor(tileType)
-		}).click(onClickTile);
+			fill: getTileColor(type)
+		}).click(getTileClickHandler(type));
 	}
 
-	function getTileColor(tileType){
-		var tileColor = {};
-		tileColor[tileType.blocked] = "black";
-		tileColor[tileType.start] = "green";
-		tileColor[tileType.end] = "red";
-		tileColor[tileType.path] = "yellow";
+	function removeTile(tileRect){
+		var column = tileRect.attr("column");
+		var row = tileRect.attr("row");
 
-		return tileColor[tileType];
+		tileMatrix[column][row].tileType = tileType.empty;
+		tileRect.remove();
+	}
+
+	function changeTileType(tileRect, newType){
+		var column = tileRect.attr("column");
+		var row = tileRect.attr("row");
+		var currentType = tileMatrix[column][row].tileType;
+
+		tileMatrix[column][row].tileType = newType;
+		tileRect.attr("fill", getTileColor(newType))
+			.unclick(getTileClickHandler(currentType))
+			.click(getTileClickHandler(newType));
+	}
+
+	function getTileClickHandler(type){
+		switch(type){
+			case tileType.blocked: return onClickBlockedTile; break;
+			case tileType.start: return onClickStartTile; break;
+			case tileType.end: return onClickEndTile; break;
+			default: return onClickTileError; break;
+		}
+	}
+
+	function getTileColor(type){
+		switch(type){
+			case tileType.blocked: return "black"; break;
+			case tileType.start: return "lightgreen"; break;
+			case tileType.end: return "red"; break;
+			case tileType.path: return "yellow"; break;
+		}
 	}
 
 	function initTilesMatrix(tileSize){
