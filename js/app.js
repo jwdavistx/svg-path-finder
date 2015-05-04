@@ -34,8 +34,17 @@ var app = (function(){
 		var validTileSizes = utils.getCommonFactors(params.width, params.height);
 		tileSize = validTileSizes[3];
 
-		drawGrid(tileSize);
+		drawGrid(tileSize, params.grid.lineAttr);
 		initTilesMatrix(tileSize);
+
+		//resizeSvg();
+	}
+
+	function resizeSvg(){
+		var bbox = svg.getBBox();
+		svg.attr("viewBox", [bbox.x, bbox.y, bbox.width, bbox.height]);
+		svg.width = bbox.width;
+		svg.height = bbox.height;
 	}
 
 	function initTilesMatrix(tileSize){
@@ -62,13 +71,15 @@ var app = (function(){
 		var width = xOffset(bbox.width);
 		var height = yOffset(bbox.height);	
 
+		var columnLine;
 		for(var col = left; col < width; col += tileSize){
-			var columnLine = svg.line(col, bbox.y, col, height).attr(attr);
+			columnLine = svg.line(col, bbox.y, col, height).attr(attr);
 			gridLines.group(columnLine);
 		}
 
+		var rowLine;
 		for(var row = top; row < height; row += tileSize){
-			var rowLine = svg.line(bbox.x, row, width, row).attr(attr);
+			rowLine = svg.line(bbox.x, row, width, row).attr(attr);
 			gridLines.group(rowLine);
 		}
 	}
@@ -259,8 +270,6 @@ var app = (function(){
 		});
 	}
 
-	// Returns a random integer between min (included) and max (excluded)
-	// Using Math.round() will give you a non-uniform distribution!
 	function getRandomInt(min, max) {
 		return Math.floor(Math.random() * (max - min)) + min;
 	}
@@ -268,9 +277,7 @@ var app = (function(){
 	function getRandomTile(){
 		var maxCols = tileMatrix.length;
 		var maxRows = tileMatrix[0].length;
-		var tile = tileMatrix[getRandomInt(0, maxCols)][getRandomInt(0, maxRows)];
-		//Adding 1 because the max is exclusive
-		return tile;
+		return tileMatrix[getRandomInt(0, maxCols)][getRandomInt(0, maxRows)];
 	}
 
 	function xOffset(x){ return origin.x + x; }
@@ -289,8 +296,8 @@ $(function(){
 		element: '#grid',
 		x: 0, 
 		y: 0, 
-		width: 1500, 
-		height: 1500,
+		width: 400, 
+		height: 400,
 		grid : {
 			borderAttr : {
 				fill: 'transparent',
@@ -313,6 +320,6 @@ $(function(){
 	});
 
 	$('#randomize').click(function(){
-		app.randomizeGrid(2000);
+		app.randomizeGrid(100);
 	});
 });
