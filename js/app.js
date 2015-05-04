@@ -1,5 +1,4 @@
 /// <reference path="./js/typings/snapsvg.d.ts" />
-
 var app = (function(){
 	var svg, origin, gridRect, gridLines, tileSize;
 	var startTile = [], endTile = [];
@@ -40,7 +39,7 @@ var app = (function(){
 		initTilesMatrix(tileSize);
 	}
 
-	//Only works if there's no other screen changes (such as scrolling or DOM elements shifting the SVG element's position)
+	//We're assuming the values coming in are relative to the view port, and not the screen.  If it were actually the screen, then this wouldn't work.
 	function screenToGrid(x, y){
 		var column, row;
 
@@ -66,59 +65,34 @@ var app = (function(){
 	}
 
 	function onClickGrid(mouseEvent, x, y){
-		var tile = screenToGrid(x, y);
+		//Use mouse position that's relative to the top left corner of view port
+		var tile = screenToGrid(mouseEvent.pageX, mouseEvent.pageY);
 		createTile(tile.column, tile.row, tileType.empty);
 	}
 
 	function onClickTile(mouseEvent, x, y){
-		updateTileType(this);
+		console.log('click');
 	}
 
-	//Need to find a smart way to coorelate the tileMatrix data to the drawing of the tiles.
 	function createTile(column, row, tileType){
-		var coord = gridToScreen(column, row);
-		var tileRect = svg.rect(coord.x, coord.y, tileSize, tileSize).attr({ 
-			column: column,
-			row: row
-		});
-
-		tileMatrix[column][row].tileRect = tileRect;
 		tileMatrix[column][row].tileType = tileType;
-		tileRect.click(onClickTile);
 
-		//This doesn't make any sense to do right here.  Need to stop function chaining.
-		updateTileType(tileRect);
+		var coord = gridToScreen(column, row);
+		svg.rect(coord.x, coord.y, tileSize, tileSize).attr({
+			column: column,
+			row: row,
+			fill: getTileColor(tileType)
+		}).click(onClickTile);
 	}
 
-	//Need to find a smart way to coorelate the tileMatrix data to the drawing of the tiles.
-	function updateTileType(tileRect){
-		var column = parseInt(tileRect.attr("column"))
-		var row = parseInt(tileRect.attr("row"));
-		var tileInfo = tileMatrix[column][row];
+	function getTileColor(tileType){
+		var tileColor = {};
+		tileColor[tileType.blocked] = "black";
+		tileColor[tileType.start] = "green";
+		tileColor[tileType.end] = "red";
+		tileColor[tileType.path] = "yellow";
 
-		switch (tileInfo.tileType){
-			case tileType.empty:
-				tileRect.attr({ fill: 'black' });
-				tileInfo.tileType = tileType.blocked;
-			break;
-			case tileType.blocked:
-				tileRect.attr({ fill: 'lightgreen' });
-				tileInfo.tileType = tileType.start;
-				startTile = [column, row];
-			break;
-			case tileType.start:
-				tileRect.attr({ fill: 'red' });
-				tileInfo.tileType = tileType.end;
-				endTile = [column, row];
-			break;
-			case tileType.end:
-				tileRect.remove();
-				tileInfo.tileType = tileType.empty;
-			break;
-			case tileType.path:
-				tileRect.attr({ fill: 'yellow', opacity: '0.2' });
-			break;
-		}
+		return tileColor[tileType];
 	}
 
 	function initTilesMatrix(tileSize){
@@ -131,8 +105,7 @@ var app = (function(){
 				tileMatrix[c].push({ 
 					column: c, 
 					row: r, 
-					tileType: tileType.empty,
-					tileRect: null
+					tileType: tileType.empty
 				});
 			}
 		}
