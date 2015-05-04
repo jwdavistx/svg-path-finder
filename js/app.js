@@ -26,13 +26,13 @@ var app = (function(){
 			origin.y,
 			params.width,
 			params.height
-		).attr(params.gridAttr);
+		).attr(params.grid.borderAttr);
 
 		gridLines = svg.group(gridRect).click(onClickGrid);
 
 		//Only allow square tiles
 		var validTileSizes = utils.getCommonFactors(params.width, params.height);
-		tileSize = validTileSizes[12];
+		tileSize = validTileSizes[3];
 
 		drawGrid(tileSize);
 		initTilesMatrix(tileSize);
@@ -55,10 +55,8 @@ var app = (function(){
 		}
 	}
 
-	function drawGrid(tileSize){
+	function drawGrid(tileSize, attr){
 		var bbox = gridRect.getBBox();
-		var attr = { stroke: 'red', strokeWidth: .5 };
-
 		var left = xOffset(tileSize);
 		var top = yOffset(tileSize);
 		var width = xOffset(bbox.width);
@@ -289,14 +287,20 @@ var app = (function(){
 $(function(){
 	app.initSvg({
 		element: '#grid',
-		x: 20, 
-		y: 20, 
-		width: 600, 
-		height: 600,
-		gridAttr : {
-			fill: 'transparent',
-			stroke: 'red',
-			strokeWidth: 1
+		x: 0, 
+		y: 0, 
+		width: 1500, 
+		height: 1500,
+		grid : {
+			borderAttr : {
+				fill: 'transparent',
+				stroke: 'red',
+				strokeWidth: 1
+			},
+			lineAttr : {
+				stroke: 'red',
+				strokeWidth: 0.5
+			}
 		}
 	});
 
@@ -309,6 +313,6 @@ $(function(){
 	});
 
 	$('#randomize').click(function(){
-		app.randomizeGrid(10);
+		app.randomizeGrid(2000);
 	});
 });
