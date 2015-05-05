@@ -28,7 +28,7 @@ var app = (function(){
 
 		//Only allow square tiles
 		var validTileSizes = utils.getCommonFactors(params.width, params.height);
-		tileSize = validTileSizes[2];
+		tileSize = validTileSizes[3];
 
 		drawGrid(tileSize, params.grid.lineAttr);
 		initTilesMatrix(tileSize);
@@ -124,8 +124,6 @@ var app = (function(){
 		var relativeX = Math.floor(mouseEvent.pageX - origin.x);
 		var relativeY = Math.floor(mouseEvent.pageY - origin.y);
 		var tile = screenToGrid(relativeX, relativeY);
-
-		console.log('tile: ', tile);
 
 		createTile(tile.column, tile.row, tileType.blocked);
 	}
@@ -313,7 +311,7 @@ var app = (function(){
 		});
 
 		$('#randomize').click(function(){
-			app.randomizeGrid(10);
+			app.randomizeGrid(5000);
 		});
 
 		$(window).resize(function(){
@@ -336,13 +334,13 @@ $(function(){
 
 	app.initSvg({
 		element: '#grid',
-		width: 100, 
-		height: 100,
+		width: 1000, 
+		height: 1000,
 		grid : {
 			borderAttr : {
 				fill: 'transparent',
-				stroke: 'red',
-				strokeWidth: 1
+				stroke: 'grey',
+				strokeWidth: .5
 			},
 			lineAttr : {
 				stroke: 'grey',
