@@ -1,6 +1,7 @@
 /// <reference path="./js/typings/snapsvg.d.ts" />
 var app = (function(){
-	var svg, svgOffset, origin, gridRect, gridLines, tileSize;
+	var svg, origin, perimeter, gridLines, tileSize;
+	var numCols = 0, numRows = 0;
 	var tileMatrix = [];
 
 	var tileType = Object.freeze({
@@ -14,30 +15,28 @@ var app = (function(){
 	function initSvg(params){
 		svg = Snap(params.element);
 		
-		//New local origin
+		//SVG origin
 		origin = {
-			x: params.x,
-			y: params.y
+			//Does not account for borders, margins, or padding set on the body element
+			x: Math.floor($("svg").offset().left),
+			y: Math.floor($("svg").offset().top)
 		};
 
-		//Does not account for borders, margins, or padding set on the body element
-		svgOffset = $("svg").offset();
-		
-		//Draw grid perimeter
-		gridRect = svg.rect(
-			origin.x,
-			origin.y,
+		//Perimeter
+		perimeter = svg.rect(
+			0,
+			0,
 			params.width,
 			params.height
 		).attr(params.grid.borderAttr);
 
-		gridLines = svg.group(gridRect).click(onClickGrid);
+		gridLines = svg.group(perimeter).click(onClickGrid);
 
 		//Only allow square tiles
 		var validTileSizes = utils.getCommonFactors(params.width, params.height);
-		tileSize = validTileSizes[5];
+		tileSize = validTileSizes[2];
 
-		//imageTest();
+		//console.log('tileSize: ' + tileSize);
 
 		drawGrid(tileSize, params.grid.lineAttr);
 		initTilesMatrix(tileSize);
@@ -53,8 +52,8 @@ var app = (function(){
 	}
 
 	function initTilesMatrix(tileSize){
-		var maxCols = gridRect.getBBox().width / tileSize;
-		var maxRows = gridRect.getBBox().height / tileSize;
+		var maxCols = perimeter.getBBox().width / tileSize;
+		var maxRows = perimeter.getBBox().height / tileSize;
 
 		for(var c = 0; c < maxCols; c++){
 			tileMatrix.push([]);
@@ -74,56 +73,57 @@ var app = (function(){
 	}
 
 	function drawGrid(tileSize, attr){
-		var bbox = gridRect.getBBox();
-		var left = xOffset(tileSize);
-		var top = yOffset(tileSize);
-		var width = xOffset(bbox.width);
-		var height = yOffset(bbox.height);	
+		var bbox = perimeter.getBBox(), line;
+		var left = tileSize, top = tileSize;
+		var width = bbox.width, height = bbox.height;
 
-		var columnLine;
+		
 		for(var col = left; col < width; col += tileSize){
-			columnLine = svg.line(col, bbox.y, col, height).attr(attr);
-			gridLines.group(columnLine);
+			gridLines.group(svg.line(col, bbox.y, col, height).attr(attr));
+			numCols++;
 		}
 
-		var rowLine;
 		for(var row = top; row < height; row += tileSize){
-			rowLine = svg.line(bbox.x, row, width, row).attr(attr);
-			gridLines.group(rowLine);
+			gridLines.group(svg.line(bbox.x, row, width, row).attr(attr));
+			numRows++;
 		}
+
+		//Adding these because we skip one by not drawing the border as a grid line
+		numCols++;
+		numRows++;
 	}
 
-	//Assumes the values coming in are relative to the view port, and not the screen.  
-	//If it were actually screen coordinates, then this wouldn't work.
+	//Assumes the values coming in are relative to the SVG
 	function screenToGrid(x, y){
-		var column, row;
+		var actualTileSize = getActualTileSize();
 
-		if(x % tileSize === origin.x && y % tileSize === origin.y){
-			column = Math.floor(x / tileSize);
-			row = Math.floor(y / tileSize);                                    
-		} else{
-			var localX = x - ((x - origin.x) % tileSize);
-			var localY = y - ((y - origin.y) % tileSize);
-
-			column = Math.floor(localX / tileSize);
-			row = Math.floor(localY / tileSize);
-		}              
+		var localX = x - (x % actualTileSize);
+		var localY = y - (y % actualTileSize);
+		var column = Math.floor(localX / actualTileSize);
+		var row = Math.floor(localY / actualTileSize);
 
 		return { column: column, row: row };
-    }
+	}
 
+	//Get the size of the tiles after any transformations have been applied
+	function getActualTileSize(){
+		var bbox = document.getElementById('grid').getBoundingClientRect();
+		return Math.floor(bbox.width / numCols);
+	}
+
+	//Get the local SVG coordinates for the top-left corner of a given tile
 	function gridToScreen(column, row){
-		var x = xOffset(column * tileSize);
-		var y = yOffset(row * tileSize);
+		var x = (column * tileSize);
+		var y = (row * tileSize);
 
 		return{ x: x, y: y };
 	}
 
-	//Use mouse position that's relative to the top left corner of viewport
 	function onClickGrid(mouseEvent, x, y){
-		var actualX = mouseEvent.pageX - svgOffset.left;
-		var actualY = mouseEvent.pageY - svgOffset.top;
-		var tile = screenToGrid(actualX, actualY);
+		var relativeX = Math.floor(mouseEvent.pageX - origin.x);
+		var relativeY = Math.floor(mouseEvent.pageY - origin.y);
+		var tile = screenToGrid(relativeX, relativeY);
+
 		createTile(tile.column, tile.row, tileType.blocked);
 	}
 
@@ -244,10 +244,12 @@ var app = (function(){
 			allowDiagonal: true,
     		dontCrossCorners: true
     	});
-		var path = finder.findPath(start[0], start[1], end[0], end[1], grid);
+
+		var path = finder.findPath(start[0], start[1], end[0], end[1], grid.clone());
+		//var smoothPath = PF.Util.smoothenPath(grid.clone(), path);
 
 		if(path.length > 0){
-			drawPath(path);	
+			drawPath(path);
 		} else{
 			alert("No path exists");
 		}		
@@ -309,10 +311,8 @@ var app = (function(){
 $(function(){
 	app.initSvg({
 		element: '#grid',
-		x: 0, 
-		y: 0, 
-		width: 800, 
-		height: 600,
+		width: 100, 
+		height: 100,
 		grid : {
 			borderAttr : {
 				fill: 'transparent',
@@ -320,8 +320,8 @@ $(function(){
 				strokeWidth: 1
 			},
 			lineAttr : {
-				stroke: 'red',
-				strokeWidth: 0.5
+				stroke: 'grey',
+				strokeWidth: 0.25
 			}
 		}
 	});
@@ -335,6 +335,6 @@ $(function(){
 	});
 
 	$('#randomize').click(function(){
-		app.randomizeGrid(100);
+		app.randomizeGrid(10);
 	});
 });

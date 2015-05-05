@@ -2,14 +2,14 @@ body{
 	margin: 0;
 }
 
-svg {
-
+#buttons{
+	text-align: center
 }
 
 #svg-container{
 	margin-left: auto;
 	margin-right: auto;
-	width: 800px;
-	height: 800px;
+	width: 600px;
+	height: 600px;
 	border: 1px dashed black;
 }
