@@ -1,6 +1,6 @@
 /// <reference path="./js/typings/snapsvg.d.ts" />
 var app = (function(){
-	var svg, origin, gridRect, gridLines, tileSize;
+	var svg, svgOffset, origin, gridRect, gridLines, tileSize;
 	var tileMatrix = [];
 
 	var tileType = Object.freeze({
@@ -13,12 +13,15 @@ var app = (function(){
 
 	function initSvg(params){
 		svg = Snap(params.element);
-				
+		
 		//New local origin
 		origin = {
 			x: params.x,
 			y: params.y
 		};
+
+		//Does not account for borders, margins, or padding set on the body element
+		svgOffset = $("svg").offset();
 		
 		//Draw grid perimeter
 		gridRect = svg.rect(
@@ -32,15 +35,17 @@ var app = (function(){
 
 		//Only allow square tiles
 		var validTileSizes = utils.getCommonFactors(params.width, params.height);
-		tileSize = validTileSizes[3];
+		tileSize = validTileSizes[5];
+
+		//imageTest();
 
 		drawGrid(tileSize, params.grid.lineAttr);
 		initTilesMatrix(tileSize);
 
-		//resizeSvg();
+		setViewBox();
 	}
 
-	function resizeSvg(){
+	function setViewBox(){
 		var bbox = svg.getBBox();
 		svg.attr("viewBox", [bbox.x, bbox.y, bbox.width, bbox.height]);
 		svg.width = bbox.width;
@@ -62,6 +67,10 @@ var app = (function(){
 				});
 			}
 		}
+	}
+
+	function imageTest(){
+		svg.image('images/dolphin.png', origin.x, origin.y, 100, 100)
 	}
 
 	function drawGrid(tileSize, attr){
@@ -112,7 +121,9 @@ var app = (function(){
 
 	//Use mouse position that's relative to the top left corner of viewport
 	function onClickGrid(mouseEvent, x, y){
-		var tile = screenToGrid(mouseEvent.pageX, mouseEvent.pageY);
+		var actualX = mouseEvent.pageX - svgOffset.left;
+		var actualY = mouseEvent.pageY - svgOffset.top;
+		var tile = screenToGrid(actualX, actualY);
 		createTile(tile.column, tile.row, tileType.blocked);
 	}
 
@@ -235,7 +246,11 @@ var app = (function(){
     	});
 		var path = finder.findPath(start[0], start[1], end[0], end[1], grid);
 
-		drawPath(path);
+		if(path.length > 0){
+			drawPath(path);	
+		} else{
+			alert("No path exists");
+		}		
 	}
 
 	function drawPath(path){
@@ -296,8 +311,8 @@ $(function(){
 		element: '#grid',
 		x: 0, 
 		y: 0, 
-		width: 400, 
-		height: 400,
+		width: 800, 
+		height: 600,
 		grid : {
 			borderAttr : {
 				fill: 'transparent',
