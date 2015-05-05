@@ -14,13 +14,8 @@ var app = (function(){
 
 	function initSvg(params){
 		svg = Snap(params.element);
-		
-		//SVG origin
-		origin = {
-			//Does not account for borders, margins, or padding set on the body element
-			x: Math.floor($("svg").offset().left),
-			y: Math.floor($("svg").offset().top)
-		};
+		setViewBox();
+		updateOriginOffset($("svg").offset());
 
 		//Perimeter
 		perimeter = svg.rect(
@@ -36,12 +31,16 @@ var app = (function(){
 		var validTileSizes = utils.getCommonFactors(params.width, params.height);
 		tileSize = validTileSizes[2];
 
-		//console.log('tileSize: ' + tileSize);
-
 		drawGrid(tileSize, params.grid.lineAttr);
 		initTilesMatrix(tileSize);
+	}
 
-		setViewBox();
+	function updateOriginOffset(offset){
+		//jQuery offset does not support getting the offset coordinates of hidden elements or accounting for borders, margins, or padding set on the body element
+		origin = {
+			x: Math.floor(offset.left),
+			y: Math.floor(offset.top)
+		};
 	}
 
 	function setViewBox(){
@@ -123,6 +122,8 @@ var app = (function(){
 		var relativeX = Math.floor(mouseEvent.pageX - origin.x);
 		var relativeY = Math.floor(mouseEvent.pageY - origin.y);
 		var tile = screenToGrid(relativeX, relativeY);
+
+		console.log('tile: ', tile);
 
 		createTile(tile.column, tile.row, tileType.blocked);
 	}
@@ -300,15 +301,37 @@ var app = (function(){
 	function xOffset(x){ return origin.x + x; }
 	function yOffset(y){ return origin.y + y; }
 
+	function bindEventHandlers(){
+		$('#find-path').click(function(){
+			app.findPath();
+		});
+
+		$('#reset').click(function(){
+			app.resetGrid();
+		});
+
+		$('#randomize').click(function(){
+			app.randomizeGrid(10);
+		});
+
+		$(window).resize(function(){
+			app.updateOriginOffset($("svg").offset());
+		});
+	}
+
 	return{
 		initSvg : initSvg,
+		updateOriginOffset: updateOriginOffset,
 		findPath : findPath,
 		resetGrid : resetGrid,
-		randomizeGrid : randomizeGrid
+		randomizeGrid : randomizeGrid,
+		bindEventHandlers: bindEventHandlers
 	}
 })();
 
 $(function(){
+	app.bindEventHandlers();
+
 	app.initSvg({
 		element: '#grid',
 		width: 100, 
@@ -324,17 +347,5 @@ $(function(){
 				strokeWidth: 0.25
 			}
 		}
-	});
-
-	$('#find-path').click(function(){
-		app.findPath();
-	});
-
-	$('#reset').click(function(){
-		app.resetGrid();
-	});
-
-	$('#randomize').click(function(){
-		app.randomizeGrid(10);
 	});
 });
