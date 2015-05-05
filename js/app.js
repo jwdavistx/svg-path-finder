@@ -14,7 +14,6 @@ var app = (function(){
 
 	function initSvg(params){
 		svg = Snap(params.element);
-		setViewBox();
 		updateOriginOffset($("svg").offset());
 
 		//Perimeter
@@ -33,6 +32,9 @@ var app = (function(){
 
 		drawGrid(tileSize, params.grid.lineAttr);
 		initTilesMatrix(tileSize);
+
+		//The order of this seems to matter
+		setViewBox();
 	}
 
 	function updateOriginOffset(offset){
