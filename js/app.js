@@ -14,6 +14,7 @@ var app = (function(){
 
 	function initSvg(params){
 		svg = Snap(params.element);
+		imageTest(params.width, params.height);
 		setOriginOffset($("svg").offset());
 
 		//Perimeter
@@ -62,8 +63,10 @@ var app = (function(){
 		}
 	}
 
-	function imageTest(){
-		svg.image('images/dolphin.png', 0, 0, 100, 100)
+	function imageTest(width, height){
+		svg.image('images/dolphin.png', 0, 0, width, height).attr({
+			preserveAspectRatio : "xMidYMin"
+		});
 	}
 
 	function drawGrid(tileSize, attr){
@@ -230,15 +233,15 @@ var app = (function(){
 		//var grid = new PF.Grid(walkabilityMatrix);
 		var start = getTileByType(tileType.start);
 		var end = getTileByType(tileType.end);
-		var grid = new PF.Grid(tileMatrix.length, tileMatrix[0].length);
-		setWalkableTiles(grid);
+		var pathGrid = new PF.Grid(tileMatrix.length, tileMatrix[0].length);
+		setWalkableTiles(pathGrid);
 
 		var finder = new PF.AStarFinder({
 			allowDiagonal: true,
     		dontCrossCorners: true
     	});
 
-		var path = finder.findPath(start[0], start[1], end[0], end[1], grid.clone());
+		var path = finder.findPath(start[0], start[1], end[0], end[1], pathGrid.clone());
 		//var smoothPath = PF.Util.smoothenPath(grid.clone(), path);
 
 		if(path.length > 0){
@@ -276,7 +279,7 @@ var app = (function(){
 			tiles.forEach(function(tile){
 				if(tile.tileType !== tileType.empty)
 					removeTile(tile.tileRect);
-			})
+			});
 		});
 	}
 
