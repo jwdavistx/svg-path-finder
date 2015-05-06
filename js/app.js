@@ -1,6 +1,6 @@
 /// <reference path="./js/typings/snapsvg.d.ts" />
 var app = (function(){
-	var svg, origin, perimeter, gridLines, tileSize;
+	var svg, origin, perimeter, grid, tileSize;
 	var numCols = 0, numRows = 0;
 	var tileMatrix = [];
 
@@ -14,17 +14,11 @@ var app = (function(){
 
 	function initSvg(params){
 		svg = Snap(params.element);
-		updateOriginOffset($("svg").offset());
+		setOriginOffset($("svg").offset());
 
 		//Perimeter
-		perimeter = svg.rect(
-			0,
-			0,
-			params.width,
-			params.height
-		).attr(params.grid.borderAttr);
-
-		gridLines = svg.group(perimeter).click(onClickGrid);
+		perimeter = svg.rect(0,	0, params.width, params.height).attr(params.grid.borderAttr);
+		grid = svg.group(perimeter).click(onClickGrid);
 
 		//Only allow square tiles
 		var validTileSizes = utils.getCommonFactors(params.width, params.height);
@@ -33,11 +27,10 @@ var app = (function(){
 		drawGrid(tileSize, params.grid.lineAttr);
 		initTilesMatrix(tileSize);
 
-		//The order of this seems to matter
 		setViewBox();
 	}
 
-	function updateOriginOffset(offset){
+	function setOriginOffset(offset){
 		//jQuery offset does not support getting the offset coordinates of hidden elements or accounting for borders, margins, or padding set on the body element
 		origin = {
 			x: Math.floor(offset.left),
@@ -70,7 +63,7 @@ var app = (function(){
 	}
 
 	function imageTest(){
-		svg.image('images/dolphin.png', origin.x, origin.y, 100, 100)
+		svg.image('images/dolphin.png', 0, 0, 100, 100)
 	}
 
 	function drawGrid(tileSize, attr){
@@ -78,14 +71,13 @@ var app = (function(){
 		var left = tileSize, top = tileSize;
 		var width = bbox.width, height = bbox.height;
 
-		
 		for(var col = left; col < width; col += tileSize){
-			gridLines.group(svg.line(col, bbox.y, col, height).attr(attr));
+			grid.add(svg.line(col, bbox.y, col, height).attr(attr));
 			numCols++;
 		}
 
 		for(var row = top; row < height; row += tileSize){
-			gridLines.group(svg.line(bbox.x, row, width, row).attr(attr));
+			grid.add(svg.line(bbox.x, row, width, row).attr(attr));
 			numRows++;
 		}
 
@@ -95,7 +87,7 @@ var app = (function(){
 	}
 
 	//Assumes the values coming in are relative to the SVG
-	function screenToGrid(x, y){
+	function viewportToGrid(x, y){
 		var actualTileSize = getActualTileSize();
 
 		var localX = x - (x % actualTileSize);
@@ -106,14 +98,14 @@ var app = (function(){
 		return { column: column, row: row };
 	}
 
-	//Get the size of the tiles after any transformations have been applied
+	//Get the size of the tiles after any transformations have been applied to the SVG
 	function getActualTileSize(){
 		var bbox = document.getElementById('grid').getBoundingClientRect();
 		return Math.floor(bbox.width / numCols);
 	}
 
 	//Get the local SVG coordinates for the top-left corner of a given tile
-	function gridToScreen(column, row){
+	function gridToViewport(column, row){
 		var x = (column * tileSize);
 		var y = (row * tileSize);
 
@@ -123,7 +115,7 @@ var app = (function(){
 	function onClickGrid(mouseEvent, x, y){
 		var relativeX = Math.floor(mouseEvent.pageX - origin.x);
 		var relativeY = Math.floor(mouseEvent.pageY - origin.y);
-		var tile = screenToGrid(relativeX, relativeY);
+		var tile = viewportToGrid(relativeX, relativeY);
 
 		createTile(tile.column, tile.row, tileType.blocked);
 	}
@@ -145,7 +137,7 @@ var app = (function(){
 	}
 
 	function createTile(column, row, type){
-		var coord = gridToScreen(column, row);
+		var coord = gridToViewport(column, row);
 		var tile = svg.rect(coord.x, coord.y, tileSize, tileSize).attr({
 			column: column,
 			row: row,
@@ -161,8 +153,8 @@ var app = (function(){
 		var row = tileRect.attr("row");
 
 		tileMatrix[column][row].tileType = tileType.empty;
-		tileRect.remove();
 		tileMatrix[column][row].tileRect = null;
+		tileRect.remove();
 	}
 
 	function changeTileType(tileRect, newType){
@@ -298,30 +290,27 @@ var app = (function(){
 		return tileMatrix[getRandomInt(0, maxCols)][getRandomInt(0, maxRows)];
 	}
 
-	function xOffset(x){ return origin.x + x; }
-	function yOffset(y){ return origin.y + y; }
-
 	function bindEventHandlers(){
 		$('#find-path').click(function(){
-			app.findPath();
+			findPath();
 		});
 
 		$('#reset').click(function(){
-			app.resetGrid();
+			resetGrid();
 		});
 
 		$('#randomize').click(function(){
-			app.randomizeGrid(5000);
+			randomizeGrid(5000);
 		});
 
 		$(window).resize(function(){
-			app.updateOriginOffset($("svg").offset());
+			setOriginOffset($("svg").offset());
 		});
 	}
 
 	return{
 		initSvg : initSvg,
-		updateOriginOffset: updateOriginOffset,
+		setOriginOffset: setOriginOffset,
 		findPath : findPath,
 		resetGrid : resetGrid,
 		randomizeGrid : randomizeGrid,
