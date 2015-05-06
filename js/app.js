@@ -14,8 +14,8 @@ var app = (function(){
 
 	function initSvg(params){
 		svg = Snap(params.element);
+		setOriginOffset(params.originOffset);
 		imageTest(params.width, params.height);
-		setOriginOffset($("svg").offset());
 
 		//Perimeter
 		perimeter = svg.rect(0,	0, params.width, params.height).attr(params.grid.borderAttr);
@@ -23,7 +23,7 @@ var app = (function(){
 
 		//Only allow square tiles
 		var validTileSizes = utils.getCommonFactors(params.width, params.height);
-		tileSize = validTileSizes[3];
+		tileSize = validTileSizes[1];
 
 		drawGrid(tileSize, params.grid.lineAttr);
 		initTilesMatrix(tileSize);
@@ -89,30 +89,33 @@ var app = (function(){
 		numRows++;
 	}
 
-	//Assumes the values coming in are relative to the SVG
+	//Given an (x, y) point on the viewport, return the tile at this coordinate
 	function viewportToGrid(x, y){
 		var actualTileSize = getActualTileSize();
 
+		//Get the closest top-left corner coordinates
 		var localX = x - (x % actualTileSize);
 		var localY = y - (y % actualTileSize);
+
+		//Determine how far over/down the corner is in the viewport
 		var column = Math.floor(localX / actualTileSize);
 		var row = Math.floor(localY / actualTileSize);
 
 		return { column: column, row: row };
 	}
 
-	//Get the size of the tiles after any transformations have been applied to the SVG
-	function getActualTileSize(){
-		var bbox = document.getElementById('grid').getBoundingClientRect();
-		return Math.floor(bbox.width / numCols);
-	}
-
-	//Get the local SVG coordinates for the top-left corner of a given tile
+	//Given a [column, row] in the matrix, return the top-left point of this tile
 	function gridToViewport(column, row){
 		var x = (column * tileSize);
 		var y = (row * tileSize);
 
 		return{ x: x, y: y };
+	}
+
+	//Get the size of the tiles after any transformations have been applied to the SVG
+	function getActualTileSize(){
+		var bbox = document.getElementById('grid').getBoundingClientRect();
+		return Math.floor(bbox.width / numCols);
 	}
 
 	function onClickGrid(mouseEvent, x, y){
@@ -151,6 +154,7 @@ var app = (function(){
 		tileMatrix[column][row].tileRect = tile;
 	}
 
+	//TODO: refactor to be based on (column, row) instead of the SVG element
 	function removeTile(tileRect){
 		var column = tileRect.attr("column");
 		var row = tileRect.attr("row");
@@ -160,6 +164,7 @@ var app = (function(){
 		tileRect.remove();
 	}
 
+	//TODO: refactor to be based on (column, row) instead of the SVG element
 	function changeTileType(tileRect, newType){
 		if(newType === tileType.empty){
 			removeTile(tileRect)
@@ -328,6 +333,7 @@ $(function(){
 		element: '#grid',
 		width: 1000, 
 		height: 1000,
+		originOffset: $("svg").offset(),
 		grid : {
 			borderAttr : {
 				fill: 'transparent',
