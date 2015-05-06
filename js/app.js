@@ -15,7 +15,7 @@ var app = (function(){
 	function initSvg(params){
 		svg = Snap(params.element);
 		setOriginOffset(params.originOffset);
-		imageTest(params.width, params.height);
+		imageTest('images/dolphin.png', params.width, params.height);
 
 		//Perimeter
 		perimeter = svg.rect(0,	0, params.width, params.height).attr(params.grid.borderAttr);
@@ -23,7 +23,7 @@ var app = (function(){
 
 		//Only allow square tiles
 		var validTileSizes = utils.getCommonFactors(params.width, params.height);
-		tileSize = validTileSizes[1];
+		tileSize = validTileSizes[6];
 
 		drawGrid(tileSize, params.grid.lineAttr);
 		initTilesMatrix(tileSize);
@@ -63,8 +63,8 @@ var app = (function(){
 		}
 	}
 
-	function imageTest(width, height){
-		svg.image('images/dolphin.png', 0, 0, width, height).attr({
+	function imageTest(imagePath, width, height){
+		svg.image(imagePath, 0, 0, width, height).attr({
 			preserveAspectRatio : "xMidYMin"
 		});
 	}
@@ -91,20 +91,21 @@ var app = (function(){
 
 	//Given an (x, y) point on the viewport, return the tile at this coordinate
 	function viewportToGrid(x, y){
-		var actualTileSize = getActualTileSize();
+		//var actualTileSize = getActualTileSize();
+		//var z = getActualTileSize();
 
 		//Get the closest top-left corner coordinates
-		var localX = x - (x % actualTileSize);
-		var localY = y - (y % actualTileSize);
+		var localX = x - (x % tileSize);
+		var localY = y - (y % tileSize);
 
 		//Determine how far over/down the corner is in the viewport
-		var column = Math.floor(localX / actualTileSize);
-		var row = Math.floor(localY / actualTileSize);
+		var column = Math.floor(localX / tileSize);
+		var row = Math.floor(localY / tileSize);
 
 		return { column: column, row: row };
 	}
 
-	//Given a [column, row] in the matrix, return the top-left point of this tile
+	//Given a [column, row] in the tile matrix, return the top-left point of that tile
 	function gridToViewport(column, row){
 		var x = (column * tileSize);
 		var y = (row * tileSize);
@@ -114,28 +115,46 @@ var app = (function(){
 
 	//Get the size of the tiles after any transformations have been applied to the SVG
 	function getActualTileSize(){
-		var bbox = document.getElementById('grid').getBoundingClientRect();
-		return Math.floor(bbox.width / numCols);
+		var rect = document.getElementById('grid').getBoundingClientRect();
+		return Math.floor(rect.width / numCols);
 	}
 
 	function onClickGrid(mouseEvent, x, y){
-		var relativeX = Math.floor(mouseEvent.pageX - origin.x);
-		var relativeY = Math.floor(mouseEvent.pageY - origin.y);
-		var tile = viewportToGrid(relativeX, relativeY);
+		var x1 = Math.floor(mouseEvent.pageX - origin.x);
+		var y1 = Math.floor(mouseEvent.pageY - origin.y);
 
-		createTile(tile.column, tile.row, tileType.blocked);
+		var x2 = mouseEvent.offsetX;
+		var y2 = mouseEvent.offsetY;
+
+		var x3 = mouseEvent.pageX;
+		var y3 = mouseEvent.pageY;
+
+		svg.circle(origin.x, origin.y, 4).attr({ fill: 'blue', stroke: 'black', strokeWidth: .25 });
+		//svg.circle(x, y, 1).attr({ fill: 'blue', stroke: 'black', strokeWidth: .25 });
+		svg.circle(x1, y1, 1).attr({ fill: 'yellow', stroke: 'black', strokeWidth: .25 });
+		svg.circle(x2, y2, 1).attr({ fill: 'red', stroke: 'black', strokeWidth: .25 });
+		//svg.circle(x3, y3, 1).attr({ fill: 'green', stroke: 'black', strokeWidth: .25 });
+	
+		svg.circle(tileSize, tileSize, 3).attr({ fill: 'pink', stroke: 'black', strokeWidth: .25 });
+
+		//var tile = viewportToGrid(0, 0);
+
+		//createTile(tile.column, tile.row, tileType.blocked);
 	}
 
 	function onClickBlockedTile(mouseEvent, x, y){
-		changeTileType(this, tileType.start);
+		var tile = viewportToGrid(this.attr("x"), this.attr("y"));
+		changeTileType(tile.column, tile.row, tileType.start);
 	}
 
 	function onClickStartTile(mouseEvent, x, y){
-		changeTileType(this, tileType.end);
+		var tile = viewportToGrid(this.attr("x"), this.attr("y"));
+		changeTileType(tile.column, tile.row, tileType.end);
 	}
 
 	function onClickEndTile(mouseEvent, x, y){
-		changeTileType(this, tileType.empty);
+		var tile = viewportToGrid(this.attr("x"), this.attr("y"));
+		changeTileType(tile.column, tile.row, tileType.empty);
 	}
 
 	function onClickTileError(mouseEvent, x, y){
@@ -147,30 +166,30 @@ var app = (function(){
 		var tile = svg.rect(coord.x, coord.y, tileSize, tileSize).attr({
 			column: column,
 			row: row,
-			fill: getTileColor(type)
+			fill: getTileColor(type),
+			opacity: 0.2
 		}).click(getTileClickHandler(type));
 
 		tileMatrix[column][row].tileType = type;
 		tileMatrix[column][row].tileRect = tile;
 	}
 
-	//TODO: refactor to be based on (column, row) instead of the SVG element
-	function removeTile(tileRect){
-		var column = tileRect.attr("column");
-		var row = tileRect.attr("row");
+	function removeTile(column, row){
+		var tile = tileMatrix[column][row];
+		var tileRect = tile.tileRect;
 
-		tileMatrix[column][row].tileType = tileType.empty;
-		tileMatrix[column][row].tileRect = null;
+		tile.tileType = tileType.empty;
+		tile.tileRect = null;
+		
 		tileRect.remove();
 	}
 
 	//TODO: refactor to be based on (column, row) instead of the SVG element
-	function changeTileType(tileRect, newType){
+	function changeTileType(column, row, newType){
 		if(newType === tileType.empty){
-			removeTile(tileRect)
+			removeTile(column, row)
 		} else {
-			var column = tileRect.attr("column");
-			var row = tileRect.attr("row");
+			var tileRect = tileMatrix[column][row].tileRect;
 			var currentType = tileMatrix[column][row].tileType;
 
 			tileRect.attr("fill", getTileColor(newType))
@@ -283,7 +302,7 @@ var app = (function(){
 		tileMatrix.forEach(function(tiles){
 			tiles.forEach(function(tile){
 				if(tile.tileType !== tileType.empty)
-					removeTile(tile.tileRect);
+					removeTile(tile.column, tile.row);
 			});
 		});
 	}
@@ -308,12 +327,23 @@ var app = (function(){
 		});
 
 		$('#randomize').click(function(){
-			randomizeGrid(5000);
+			randomizeGrid(50);
 		});
 
 		$(window).resize(function(){
 			setOriginOffset($("svg").offset());
 		});
+
+		document.onmousemove = function(event){
+			var event = event || window.event;
+			myMouseX = event.clientX;
+			myMouseY = event.clientY;
+
+			myMouseX + document.documentElement.scrollLeft;
+			myMouseY + document.documentElement.scrollTop;
+
+			//console.log(myMouseX, myMouseY);
+		}
 	}
 
 	return{
@@ -331,8 +361,8 @@ $(function(){
 
 	app.initSvg({
 		element: '#grid',
-		width: 1000, 
-		height: 1000,
+		width: 400, 
+		height: 400,
 		originOffset: $("svg").offset(),
 		grid : {
 			borderAttr : {
