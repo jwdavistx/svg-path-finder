@@ -31,6 +31,7 @@ var app = (function(){
 		setViewBox();
 	}
 
+	//Offset of SVG container in the window
 	function setOriginOffset(offset){
 		//jQuery offset does not support getting the offset coordinates of hidden elements or accounting for borders, margins, or padding set on the body element
 		origin = {
@@ -57,7 +58,7 @@ var app = (function(){
 					column: c, 
 					row: r, 
 					tileType: tileType.empty,
-					tileRect: null //Storing a reference to the svg element because I'm not sure of another way to keep track of them for now
+					tileRect: null
 				});
 			}
 		}
@@ -91,14 +92,11 @@ var app = (function(){
 
 	//Given an (x, y) point on the viewport, return the tile at this coordinate
 	function viewportToGrid(x, y){
-		//var actualTileSize = getActualTileSize();
-		//var z = getActualTileSize();
-
-		//Get the closest top-left corner coordinates
+		//Get the closest top-left corner coordinate
 		var localX = x - (x % tileSize);
 		var localY = y - (y % tileSize);
 
-		//Determine how far over/down the corner is in the viewport
+		//How far over/down the corner is in the viewport
 		var column = Math.floor(localX / tileSize);
 		var row = Math.floor(localY / tileSize);
 
@@ -125,16 +123,12 @@ var app = (function(){
 		var x = mouseEvent.pageX - origin.x;
 		var y = mouseEvent.pageY - origin.y;
 
-		//Translate screen coordinate to viewport. (This probably won't work if the grid size has shrunk)
+		//Translate screen coordinate to viewport (This probably won't work if the grid size has shrunk)
 		var localX = Math.floor(x / scale);
 		var localY = Math.floor(y / scale);
 
-		//Show mouse click on SVG
-		//svg.circle(localX, localY, 1).attr({ fill: 'blue', stroke: 'black', strokeWidth: '.25' });
-
-		var tile = viewportToGrid(localX, localY);
-
-		createTile(tile.column, tile.row, tileType.blocked);
+		var cell = viewportToGrid(localX, localY);
+		createTile(cell.column, cell.row, tileType.blocked);
 	}
 
 	function onClickBlockedTile(mouseEvent, x, y){
