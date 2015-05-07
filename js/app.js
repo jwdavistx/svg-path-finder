@@ -23,7 +23,7 @@ var app = (function(){
 
 		//Only allow square tiles
 		var validTileSizes = utils.getCommonFactors(params.width, params.height);
-		tileSize = validTileSizes[6];
+		tileSize = validTileSizes[3];
 
 		drawGrid(tileSize, params.grid.lineAttr);
 		initTilesMatrix(tileSize);
@@ -120,26 +120,21 @@ var app = (function(){
 	}
 
 	function onClickGrid(mouseEvent, x, y){
-		var x1 = Math.floor(mouseEvent.pageX - origin.x);
-		var y1 = Math.floor(mouseEvent.pageY - origin.y);
+		var scale = getActualTileSize() / tileSize;
+		//Mouse position relative to top-left of SVG container
+		var x = mouseEvent.pageX - origin.x;
+		var y = mouseEvent.pageY - origin.y;
 
-		var x2 = mouseEvent.offsetX;
-		var y2 = mouseEvent.offsetY;
+		//Translate screen coordinate to viewport. (This probably won't work if the grid size has shrunk)
+		var localX = Math.floor(x / scale);
+		var localY = Math.floor(y / scale);
 
-		var x3 = mouseEvent.pageX;
-		var y3 = mouseEvent.pageY;
+		//Show mouse click on SVG
+		//svg.circle(localX, localY, 1).attr({ fill: 'blue', stroke: 'black', strokeWidth: '.25' });
 
-		svg.circle(origin.x, origin.y, 4).attr({ fill: 'blue', stroke: 'black', strokeWidth: .25 });
-		//svg.circle(x, y, 1).attr({ fill: 'blue', stroke: 'black', strokeWidth: .25 });
-		svg.circle(x1, y1, 1).attr({ fill: 'yellow', stroke: 'black', strokeWidth: .25 });
-		svg.circle(x2, y2, 1).attr({ fill: 'red', stroke: 'black', strokeWidth: .25 });
-		//svg.circle(x3, y3, 1).attr({ fill: 'green', stroke: 'black', strokeWidth: .25 });
-	
-		svg.circle(tileSize, tileSize, 3).attr({ fill: 'pink', stroke: 'black', strokeWidth: .25 });
+		var tile = viewportToGrid(localX, localY);
 
-		//var tile = viewportToGrid(0, 0);
-
-		//createTile(tile.column, tile.row, tileType.blocked);
+		createTile(tile.column, tile.row, tileType.blocked);
 	}
 
 	function onClickBlockedTile(mouseEvent, x, y){
@@ -166,8 +161,7 @@ var app = (function(){
 		var tile = svg.rect(coord.x, coord.y, tileSize, tileSize).attr({
 			column: column,
 			row: row,
-			fill: getTileColor(type),
-			opacity: 0.2
+			fill: getTileColor(type)
 		}).click(getTileClickHandler(type));
 
 		tileMatrix[column][row].tileType = type;
@@ -333,17 +327,6 @@ var app = (function(){
 		$(window).resize(function(){
 			setOriginOffset($("svg").offset());
 		});
-
-		document.onmousemove = function(event){
-			var event = event || window.event;
-			myMouseX = event.clientX;
-			myMouseY = event.clientY;
-
-			myMouseX + document.documentElement.scrollLeft;
-			myMouseY + document.documentElement.scrollTop;
-
-			//console.log(myMouseX, myMouseY);
-		}
 	}
 
 	return{
