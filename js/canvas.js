@@ -163,50 +163,22 @@ var app = (function(){
 	}
 
 	function processImage(){
-		var x, y, data;
-		var worker = new Worker('./js/workers/processImageData.js');
-		worker.onmessage = onMessageResult;
+		var x, y, canvasData;
+		var width = canvas.width, height = canvas.height / 4;
+		var maxWorkers = 8, worker;
+		
+		for(var i = 0; i < maxWorkers; i++){
+			y = height * i;
+			canvasData = canvas.getContext('2d').getImageData(0, y, width, height);	
 
-		for(x = 0; x < 10; x++){
-			for(y = 0; y < 10; y++){
-				var canvasData = canvas.getContext('2d').getImageData(x, y, tileSize, tileSize);
-				worker.postMessage({ canvasData: canvasData, tile: { column: x , row: y  } });
-			}
+			worker = new Worker('./js/processImageData.js');
+			worker.onmessage = onMessageResult;
+			worker.postMessage({ canvasData: canvasData, tileSize: tileSize, workerIndex: i });
 		}
 	}
 
 	function onMessageResult(messageEvent){
-		console.log("worker finished: ", messageEvent.data.tile, messageEvent.data.result);
-	}
-
-	function isMostlyEmpty(data){
-		var r, g, b, a;
-		var sampleSize = data.length / 4;
-		var avgBrightness = 0, grayscaled = 0, totalBrightness = 0;
-		var darknessTolerance = 255 - (255 * .2);
-
-		//Loop through all of the pixels in the sample size
-		for(var i = 0; i < data.length; i += 4){
-			r = data[i], g = data[i+1], b = data[i+2], a = data[i+3];
-
-			//Regardless of color, if it's even slightly transparent then let's just say it's empty
-			if(a < 255) return true;
-
-			grayscaled = rgbToGrayscale(r, g, b);
-			totalBrightness += getRgbBrightness(grayscaled, grayscaled, grayscaled);
-		}
-
-		//Is the average brightness of all the (greyscaled) pixels greater than what is set as "too dark"?
-		return Math.floor(totalBrightness / sampleSize) > darknessTolerance;
-	}
-
-	function rgbToGrayscale(r, g, b){
-		return (r + g + b) / 3;
-	}
-
-	function getRgbBrightness(r, g, b){
-		//HSP color model for perceived brightness [0, 255]
-		return Math.sqrt((0.299 * (Math.pow(r, 2))) + (0.587 * (Math.pow(g, 2))) + (0.114 * (Math.pow(b, 2))));
+		console.log("worker finished (" + messageEvent.data.result.index + ")", messageEvent.data.result.length);
 	}
 
 	function randomizeGrid(percentOfMax){
