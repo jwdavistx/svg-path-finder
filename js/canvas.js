@@ -10,7 +10,7 @@ var app = (function(){
 		path: 5
 	});
 
-	function initPage(params){
+	function initCanvas(params){
 		var size = getImageSize(params.image);
 		container = params.container;
 		canvas = new fabric.Canvas(params.canvas, { 
@@ -24,7 +24,6 @@ var app = (function(){
 
 		var validTileSizes = utils.getCommonFactors(canvas.getWidth(), canvas.getHeight());
 		tileSize = validTileSizes[4];  //8
-		//console.log('tileSize: ', tileSize);
 
 		initMap(params.image, tileSize);
 		initTilesMatrix(tileSize);
@@ -164,26 +163,27 @@ var app = (function(){
 	}
 
 	function processImage(){
-		/*
-		for(var x = 0; x < tileSize * 1; x += tileSize){
-			for(var y = 0; y < tileSize * 1; y += tileSize){
-				var data = canvas.getContext('2d').getImageData(0, 0, tileSize, tileSize).data;
+		var x, y, data;
+		var worker = new Worker('./js/workers/processImageData.js');
+		worker.onmessage = onMessageResult;
+
+		for(x = 0; x < 10; x++){
+			for(y = 0; y < 10; y++){
+				var canvasData = canvas.getContext('2d').getImageData(x, y, tileSize, tileSize);
+				worker.postMessage({ canvasData: canvasData, tile: { column: x , row: y  } });
 			}
 		}
-		*/
+	}
 
-		var d1 = canvas.getContext('2d').getImageData(tileSize * 18, 0, tileSize, tileSize).data;
-		var d2 = canvas.getContext('2d').getImageData(tileSize * 19, 0, tileSize, tileSize).data;
-
-		console.log(isMostlyEmpty(d1), isMostlyEmpty(d2));
+	function onMessageResult(messageEvent){
+		console.log("worker finished: ", messageEvent.data.tile, messageEvent.data.result);
 	}
 
 	function isMostlyEmpty(data){
 		var r, g, b, a;
 		var sampleSize = data.length / 4;
-		var avgBrightness = 0;
-		var darknessTolerance = .2
-		var grayscaled = 0, totalBrightness = 0;
+		var avgBrightness = 0, grayscaled = 0, totalBrightness = 0;
+		var darknessTolerance = 255 - (255 * .2);
 
 		//Loop through all of the pixels in the sample size
 		for(var i = 0; i < data.length; i += 4){
@@ -196,8 +196,8 @@ var app = (function(){
 			totalBrightness += getRgbBrightness(grayscaled, grayscaled, grayscaled);
 		}
 
-		//Is the average brightness of all the greyscaled pixels greater than what is set as "too dark"?
-		return Math.floor(totalBrightness / sampleSize) > (255 - (255 * darknessTolerance));
+		//Is the average brightness of all the (greyscaled) pixels greater than what is set as "too dark"?
+		return Math.floor(totalBrightness / sampleSize) > darknessTolerance;
 	}
 
 	function rgbToGrayscale(r, g, b){
@@ -209,12 +209,11 @@ var app = (function(){
 		return Math.sqrt((0.299 * (Math.pow(r, 2))) + (0.587 * (Math.pow(g, 2))) + (0.114 * (Math.pow(b, 2))));
 	}
 
-	function randomizeGrid(){
+	function randomizeGrid(percentOfMax){
 		var tile;
 		var blockedCount = 0;
 		var maxTiles = getNumCols() * getNumRows();
-
-		var density = maxTiles * .1;
+		var density = maxTiles * percentOfMax;
 		
 		while(blockedCount < density){
 			 tile = getRandomTile();
@@ -249,7 +248,7 @@ var app = (function(){
 		});
 
 		$('#randomize').click(function(){
-			randomizeGrid();
+			randomizeGrid(.1);
 		});
 
 		$(window).resize(function(){
@@ -258,18 +257,18 @@ var app = (function(){
 	}
 
 	return {
-		initPage : initPage,
+		initCanvas : initCanvas,
 		bindEventHandlers : bindEventHandlers
 	}
 })();
 
 $(function(){
-	app.initPage({
+	app.initCanvas({
 		canvas: 'grid',
-		width: 1280,
-		height: 800,
+		width: 1400,
+		height: 1640,
 		container: $("#page-content"),
-		image: './images/dolphin.png'
+		image: './images/maze1.png'
 	});
 
 	app.bindEventHandlers();

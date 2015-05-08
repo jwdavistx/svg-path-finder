@@ -18,8 +18,7 @@ var app = (function(){
 		svg.attr("width", params.width);
 		svg.attr("height", params.height);
 
-		
-		imageTest('images/dolphin.png', params.width, params.height);
+		imageTest(params.image, params.width, params.height);
 
 		grid = svg.group(svg.rect(0, 0, params.width, params.height).attr({ fill: 'transparent' })).click(onClickGrid);
 
@@ -60,7 +59,7 @@ var app = (function(){
 					column: c, 
 					row: r, 
 					tileType: tileType.empty,
-					tileRect: null
+					rect: null
 				});
 			}
 		}
@@ -121,7 +120,7 @@ var app = (function(){
 		var x = mouseEvent.pageX - origin.x;
 		var y = mouseEvent.pageY - origin.y;
 
-		//Translate screen coordinate to viewport. (This probably won't work if the grid size has shrunk)
+		//Translate screen coordinate to viewport.
 		var localX = Math.floor(x / scale);
 		var localY = Math.floor(y / scale);
 
@@ -160,28 +159,27 @@ var app = (function(){
 		}).click(getTileClickHandler(type));
 
 		tileMatrix[column][row].tileType = type;
-		tileMatrix[column][row].tileRect = tile;
+		tileMatrix[column][row].rect = tile;
 	}
 
 	function removeTile(column, row){
 		var tile = tileMatrix[column][row];
-		var tileRect = tile.tileRect;
+		var rect = tile.rect;
 
 		tile.tileType = tileType.empty;
-		tile.tileRect = null;
+		tile.rect = null;
 		
-		tileRect.remove();
+		rect.remove();
 	}
 
-	//TODO: refactor to be based on (column, row) instead of the SVG element
 	function changeTileType(column, row, newType){
 		if(newType === tileType.empty){
 			removeTile(column, row)
 		} else {
-			var tileRect = tileMatrix[column][row].tileRect;
+			var rect = tileMatrix[column][row].rect;
 			var currentType = tileMatrix[column][row].tileType;
 
-			tileRect.attr("fill", getTileColor(newType))
+			rect.attr("fill", getTileColor(newType))
 				.unclick(getTileClickHandler(currentType))
 				.click(getTileClickHandler(newType));
 
@@ -270,12 +268,11 @@ var app = (function(){
 			createTile(path[i][0], path[i][1], tileType.path);
 	}
 
-	function randomizeGrid(density){
+	function randomizeGrid(percentOfMax){
 		var tile;
 		var blockedCount = 0;
 		var maxTiles = tileMatrix.length * tileMatrix[0].length;
-		if( density > maxTiles)
-			density = maxTiles
+		var density = maxTiles * percentOfMax;
 		
 		while(blockedCount < density){
 			 tile = getRandomTile();
@@ -316,7 +313,7 @@ var app = (function(){
 		});
 
 		$('#randomize').click(function(){
-			randomizeGrid(50);
+			randomizeGrid(.1);
 		});
 
 		$(window).resize(function(){
@@ -340,8 +337,9 @@ $(function(){
 	app.initSvg({
 		inDebug: true,
 		element: '#grid',
-		width: 1280, 
-		height: 800,
+		width: 1400, 
+		height: 1640,
+		image: './images/maze1.png',
 		grid : {
 			lineAttr : {
 				stroke: 'grey',
