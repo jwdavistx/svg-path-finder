@@ -1,6 +1,6 @@
 /// <reference path="./js/typings/snapsvg.d.ts" />
 var app = (function(){
-	var svg, origin, perimeter, grid, tileSize;
+	var svg, origin, grid, tileSize, inDebug;
 	var numCols = 0, numRows = 0;
 	var tileMatrix = [];
 
@@ -13,24 +13,25 @@ var app = (function(){
 	});
 
 	function initSvg(params){
+		inDebug = params.inDebug;
 		svg = Snap(params.element);
 		svg.attr("width", params.width);
 		svg.attr("height", params.height);
 
-		setOriginOffset(params.originOffset);
+		
 		imageTest('images/dolphin.png', params.width, params.height);
 
-		perimeter = svg.rect(0,	0, params.width, params.height).attr(params.grid.borderAttr);
-		grid = svg.group(perimeter).click(onClickGrid);
+		grid = svg.group(svg.rect(0, 0, params.width, params.height).attr({ fill: 'transparent' })).click(onClickGrid);
 
 		//Only allow square tiles
 		var validTileSizes = utils.getCommonFactors(params.width, params.height);
-		tileSize = validTileSizes[3];
+		tileSize = validTileSizes[4];
 
 		drawGrid(tileSize, params.grid.lineAttr);
 		initTilesMatrix(tileSize);
 
 		setViewBox();
+		setOriginOffset($("svg").offset());
 	}
 
 	function setOriginOffset(offset){
@@ -49,8 +50,8 @@ var app = (function(){
 	}
 
 	function initTilesMatrix(tileSize){
-		var maxCols = perimeter.getBBox().width / tileSize;
-		var maxRows = perimeter.getBBox().height / tileSize;
+		var maxCols = svg.getBBox().width / tileSize;
+		var maxRows = svg.getBBox().height / tileSize;
 
 		for(var c = 0; c < maxCols; c++){
 			tileMatrix.push([]);
@@ -59,7 +60,7 @@ var app = (function(){
 					column: c, 
 					row: r, 
 					tileType: tileType.empty,
-					tileRect: null //Storing a reference to the svg element because I'm not sure of another way to keep track of them for now
+					tileRect: null
 				});
 			}
 		}
@@ -72,23 +73,19 @@ var app = (function(){
 	}
 
 	function drawGrid(tileSize, attr){
-		var bbox = perimeter.getBBox(), line;
+		var bbox = svg.getBBox(), line;
 		var left = tileSize, top = tileSize;
 		var width = bbox.width, height = bbox.height;
 
-		for(var col = left; col < width; col += tileSize){
+		for(var col = 0; col < width; col += tileSize){
 			grid.add(svg.line(col, bbox.y, col, height).attr(attr));
 			numCols++;
 		}
 
-		for(var row = top; row < height; row += tileSize){
+		for(var row = 0; row < height; row += tileSize){
 			grid.add(svg.line(bbox.x, row, width, row).attr(attr));
 			numRows++;
 		}
-
-		//Adding these because we skip one by not drawing the border as a grid line
-		numCols++;
-		numRows++;
 	}
 
 	//Given an (x, y) point on the viewport, return the tile at this coordinate
@@ -119,7 +116,7 @@ var app = (function(){
 	}
 
 	function onClickGrid(mouseEvent, x, y){
-		var scale = getActualTileSize() / tileSize;
+		var scale = getSvgScale();
 		//Mouse position relative to top-left of SVG container
 		var x = mouseEvent.pageX - origin.x;
 		var y = mouseEvent.pageY - origin.y;
@@ -128,10 +125,8 @@ var app = (function(){
 		var localX = Math.floor(x / scale);
 		var localY = Math.floor(y / scale);
 
-		//Show mouse click on SVG
-		//svg.circle(localX, localY, 1).attr({ fill: 'blue', stroke: 'black', strokeWidth: '.25' });
-
 		var tile = viewportToGrid(localX, localY);
+		if(inDebug) svg.circle(localX, localY, 1).attr({ fill: 'blue', stroke: 'black', strokeWidth: '.25' });
 
 		createTile(tile.column, tile.row, tileType.blocked);
 	}
@@ -160,7 +155,8 @@ var app = (function(){
 		var tile = svg.rect(coord.x, coord.y, tileSize, tileSize).attr({
 			column: column,
 			row: row,
-			fill: getTileColor(type)
+			fill: getTileColor(type),
+			opacity: inDebug ? '0.2' : '1'
 		}).click(getTileClickHandler(type));
 
 		tileMatrix[column][row].tileType = type;
@@ -306,6 +302,10 @@ var app = (function(){
 		return tileMatrix[utils.getRandomInt(0, maxCols)][utils.getRandomInt(0, maxRows)];
 	}
 
+	function getSvgScale(){
+		return getActualTileSize() / tileSize;
+	}
+
 	function bindEventHandlers(){
 		$('#find-path').click(function(){
 			findPath();
@@ -338,16 +338,11 @@ $(function(){
 	app.bindEventHandlers();
 
 	app.initSvg({
+		inDebug: true,
 		element: '#grid',
 		width: 1280, 
 		height: 800,
-		originOffset: $("svg").offset(),
 		grid : {
-			borderAttr : {
-				fill: 'transparent',
-				stroke: 'grey',
-				strokeWidth: .5
-			},
 			lineAttr : {
 				stroke: 'grey',
 				strokeWidth: 0.25

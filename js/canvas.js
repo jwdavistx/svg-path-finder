@@ -42,7 +42,7 @@ var app = (function(){
 			img.hasRotatingPoint = false;
 
 			canvas.add(img);
-			//initGrid(tileSize);
+			initGrid(tileSize);
 
 			canvas.renderAll();
 		});
@@ -62,11 +62,11 @@ var app = (function(){
 		var x, y;
 		var width = canvas.getWidth(), height = canvas.getHeight();
 
-		for(x = tileSize; x < width; x += tileSize){
+		for(x = 0; x < width; x += tileSize){
 			canvas.add(drawGridLine([x, 0, x, canvas.getHeight()]))
 		}
 
-		for(y = tileSize; y < height; y += tileSize){
+		for(y = 0; y < height; y += tileSize){
 			canvas.add(drawGridLine([0, y, canvas.getWidth(), y]))
 		}
 
