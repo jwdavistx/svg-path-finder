@@ -14,10 +14,12 @@ var app = (function(){
 
 	function initSvg(params){
 		svg = Snap(params.element);
+		svg.attr("width", params.width);
+		svg.attr("height", params.height);
+
 		setOriginOffset(params.originOffset);
 		imageTest('images/dolphin.png', params.width, params.height);
 
-		//Perimeter
 		perimeter = svg.rect(0,	0, params.width, params.height).attr(params.grid.borderAttr);
 		grid = svg.group(perimeter).click(onClickGrid);
 
@@ -91,9 +93,6 @@ var app = (function(){
 
 	//Given an (x, y) point on the viewport, return the tile at this coordinate
 	function viewportToGrid(x, y){
-		//var actualTileSize = getActualTileSize();
-		//var z = getActualTileSize();
-
 		//Get the closest top-left corner coordinates
 		var localX = x - (x % tileSize);
 		var localY = y - (y % tileSize);
@@ -301,14 +300,10 @@ var app = (function(){
 		});
 	}
 
-	function getRandomInt(min, max) {
-		return Math.floor(Math.random() * (max - min)) + min;
-	}
-
 	function getRandomTile(){
 		var maxCols = tileMatrix.length;
 		var maxRows = tileMatrix[0].length;
-		return tileMatrix[getRandomInt(0, maxCols)][getRandomInt(0, maxRows)];
+		return tileMatrix[utils.getRandomInt(0, maxCols)][utils.getRandomInt(0, maxRows)];
 	}
 
 	function bindEventHandlers(){
@@ -344,8 +339,8 @@ $(function(){
 
 	app.initSvg({
 		element: '#grid',
-		width: 400, 
-		height: 400,
+		width: 1280, 
+		height: 800,
 		originOffset: $("svg").offset(),
 		grid : {
 			borderAttr : {

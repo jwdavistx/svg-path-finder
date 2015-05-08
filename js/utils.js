@@ -23,7 +23,12 @@ var utils = (function(){
 		});
 	}
 
+	function getRandomInt(min, max) {
+		return Math.floor(Math.random() * (max - min)) + min;
+	}
+
 	return {
-		getCommonFactors : getCommonFactors
+		getCommonFactors : getCommonFactors,
+		getRandomInt : getRandomInt
 	}
 })();
