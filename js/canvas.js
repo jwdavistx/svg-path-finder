@@ -164,12 +164,15 @@ var app = (function(){
 
 	function processImage(){
 		var x, y, canvasData;
-		var width = canvas.width, height = canvas.height / 4;
 		var maxWorkers = 8, worker;
+		var width = canvas.width;
+		var height = canvas.height / maxWorkers;
+		
 		
 		for(var i = 0; i < maxWorkers; i++){
 			y = height * i;
-			canvasData = canvas.getContext('2d').getImageData(0, y, width, height);	
+			canvasData = canvas.getContext('2d').getImageData(0, y, width, height);
+			//canvasData = canvas.getContext('2d').getImageData(0, 0, 16, 16);
 
 			worker = new Worker('./js/processImageData.js');
 			worker.onmessage = onMessageResult;
@@ -177,8 +180,8 @@ var app = (function(){
 		}
 	}
 
-	function onMessageResult(messageEvent){
-		console.log("worker finished (" + messageEvent.data.result.index + ")", messageEvent.data.result.length);
+	function onMessageResult(e){
+		console.log("worker finished (", e.data.index, ")", e.data.result.length);
 	}
 
 	function randomizeGrid(percentOfMax){
