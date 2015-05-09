@@ -1,15 +1,25 @@
 body{
-	margin: 0;
+	margin-left: 10px;
+	margin-right: 10px;
 }
 
 #buttons{
 	text-align: center
 }
 
-#svg-container{
-	margin-left: auto;
-	margin-right: auto;
-	width: 600px;
-	height: 600px;
+svg{
+	border: 1px solid red;
+	margin: 0 auto;
+	display: block;
+}
+
+.canvas-container{
+	border: 1px solid blue;
+	margin: 0 auto;
+}
+
+#page-content{
+	width: 100%;
+	margin: 0 auto;
 	border: 1px dashed black;
 }

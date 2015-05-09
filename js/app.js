@@ -1,6 +1,6 @@
 /// <reference path="./js/typings/snapsvg.d.ts" />
 var app = (function(){
-	var svg, origin, perimeter, grid, tileSize;
+	var svg, origin, grid, tileSize, inDebug;
 	var numCols = 0, numRows = 0;
 	var tileMatrix = [];
 
@@ -13,25 +13,26 @@ var app = (function(){
 	});
 
 	function initSvg(params){
+		inDebug = params.inDebug;
 		svg = Snap(params.element);
-		setOriginOffset(params.originOffset);
-		imageTest('images/dolphin.png', params.width, params.height);
+		svg.attr("width", params.width);
+		svg.attr("height", params.height);
 
-		//Perimeter
-		perimeter = svg.rect(0,	0, params.width, params.height).attr(params.grid.borderAttr);
-		grid = svg.group(perimeter).click(onClickGrid);
+		imageTest(params.image, params.width, params.height);
+
+		grid = svg.group(svg.rect(0, 0, params.width, params.height).attr({ fill: 'transparent' })).click(onClickGrid);
 
 		//Only allow square tiles
 		var validTileSizes = utils.getCommonFactors(params.width, params.height);
-		tileSize = validTileSizes[3];
+		tileSize = validTileSizes[4];
 
 		drawGrid(tileSize, params.grid.lineAttr);
 		initTilesMatrix(tileSize);
 
 		setViewBox();
+		setOriginOffset($("svg").offset());
 	}
 
-	//Offset of SVG container in the window
 	function setOriginOffset(offset){
 		//jQuery offset does not support getting the offset coordinates of hidden elements or accounting for borders, margins, or padding set on the body element
 		origin = {
@@ -48,8 +49,8 @@ var app = (function(){
 	}
 
 	function initTilesMatrix(tileSize){
-		var maxCols = perimeter.getBBox().width / tileSize;
-		var maxRows = perimeter.getBBox().height / tileSize;
+		var maxCols = svg.getBBox().width / tileSize;
+		var maxRows = svg.getBBox().height / tileSize;
 
 		for(var c = 0; c < maxCols; c++){
 			tileMatrix.push([]);
@@ -58,7 +59,7 @@ var app = (function(){
 					column: c, 
 					row: r, 
 					tileType: tileType.empty,
-					tileRect: null
+					rect: null
 				});
 			}
 		}
@@ -71,28 +72,24 @@ var app = (function(){
 	}
 
 	function drawGrid(tileSize, attr){
-		var bbox = perimeter.getBBox(), line;
+		var bbox = svg.getBBox(), line;
 		var left = tileSize, top = tileSize;
 		var width = bbox.width, height = bbox.height;
 
-		for(var col = left; col < width; col += tileSize){
+		for(var col = 0; col < width; col += tileSize){
 			grid.add(svg.line(col, bbox.y, col, height).attr(attr));
 			numCols++;
 		}
 
-		for(var row = top; row < height; row += tileSize){
+		for(var row = 0; row < height; row += tileSize){
 			grid.add(svg.line(bbox.x, row, width, row).attr(attr));
 			numRows++;
 		}
-
-		//Adding these because we skip one by not drawing the border as a grid line
-		numCols++;
-		numRows++;
 	}
 
 	//Given an (x, y) point on the viewport, return the tile at this coordinate
 	function viewportToGrid(x, y){
-		//Get the closest top-left corner coordinate
+		//Get the closest top-left corner coordinates
 		var localX = x - (x % tileSize);
 		var localY = y - (y % tileSize);
 
@@ -118,17 +115,19 @@ var app = (function(){
 	}
 
 	function onClickGrid(mouseEvent, x, y){
-		var scale = getActualTileSize() / tileSize;
+		var scale = getSvgScale();
 		//Mouse position relative to top-left of SVG container
 		var x = mouseEvent.pageX - origin.x;
 		var y = mouseEvent.pageY - origin.y;
 
-		//Translate screen coordinate to viewport (This probably won't work if the grid size has shrunk)
+		//Translate screen coordinate to viewport.
 		var localX = Math.floor(x / scale);
 		var localY = Math.floor(y / scale);
 
-		var cell = viewportToGrid(localX, localY);
-		createTile(cell.column, cell.row, tileType.blocked);
+		var tile = viewportToGrid(localX, localY);
+		if(inDebug) svg.circle(localX, localY, 1).attr({ fill: 'blue', stroke: 'black', strokeWidth: '.25' });
+
+		createTile(tile.column, tile.row, tileType.blocked);
 	}
 
 	function onClickBlockedTile(mouseEvent, x, y){
@@ -155,32 +154,32 @@ var app = (function(){
 		var tile = svg.rect(coord.x, coord.y, tileSize, tileSize).attr({
 			column: column,
 			row: row,
-			fill: getTileColor(type)
+			fill: getTileColor(type),
+			opacity: inDebug ? '0.2' : '1'
 		}).click(getTileClickHandler(type));
 
 		tileMatrix[column][row].tileType = type;
-		tileMatrix[column][row].tileRect = tile;
+		tileMatrix[column][row].rect = tile;
 	}
 
 	function removeTile(column, row){
 		var tile = tileMatrix[column][row];
-		var tileRect = tile.tileRect;
+		var rect = tile.rect;
 
 		tile.tileType = tileType.empty;
-		tile.tileRect = null;
+		tile.rect = null;
 		
-		tileRect.remove();
+		rect.remove();
 	}
 
-	//TODO: refactor to be based on (column, row) instead of the SVG element
 	function changeTileType(column, row, newType){
 		if(newType === tileType.empty){
 			removeTile(column, row)
 		} else {
-			var tileRect = tileMatrix[column][row].tileRect;
+			var rect = tileMatrix[column][row].rect;
 			var currentType = tileMatrix[column][row].tileType;
 
-			tileRect.attr("fill", getTileColor(newType))
+			rect.attr("fill", getTileColor(newType))
 				.unclick(getTileClickHandler(currentType))
 				.click(getTileClickHandler(newType));
 
@@ -269,12 +268,11 @@ var app = (function(){
 			createTile(path[i][0], path[i][1], tileType.path);
 	}
 
-	function randomizeGrid(density){
+	function randomizeGrid(percentOfMax){
 		var tile;
 		var blockedCount = 0;
 		var maxTiles = tileMatrix.length * tileMatrix[0].length;
-		if( density > maxTiles)
-			density = maxTiles
+		var density = maxTiles * percentOfMax;
 		
 		while(blockedCount < density){
 			 tile = getRandomTile();
@@ -295,14 +293,14 @@ var app = (function(){
 		});
 	}
 
-	function getRandomInt(min, max) {
-		return Math.floor(Math.random() * (max - min)) + min;
-	}
-
 	function getRandomTile(){
 		var maxCols = tileMatrix.length;
 		var maxRows = tileMatrix[0].length;
-		return tileMatrix[getRandomInt(0, maxCols)][getRandomInt(0, maxRows)];
+		return tileMatrix[utils.getRandomInt(0, maxCols)][utils.getRandomInt(0, maxRows)];
+	}
+
+	function getSvgScale(){
+		return getActualTileSize() / tileSize;
 	}
 
 	function bindEventHandlers(){
@@ -315,7 +313,7 @@ var app = (function(){
 		});
 
 		$('#randomize').click(function(){
-			randomizeGrid(50);
+			randomizeGrid(.1);
 		});
 
 		$(window).resize(function(){
@@ -337,16 +335,12 @@ $(function(){
 	app.bindEventHandlers();
 
 	app.initSvg({
+		inDebug: true,
 		element: '#grid',
-		width: 400, 
-		height: 400,
-		originOffset: $("svg").offset(),
+		width: 1400, 
+		height: 1640,
+		image: './images/maze1.png',
 		grid : {
-			borderAttr : {
-				fill: 'transparent',
-				stroke: 'grey',
-				strokeWidth: .5
-			},
 			lineAttr : {
 				stroke: 'grey',
 				strokeWidth: 0.25
