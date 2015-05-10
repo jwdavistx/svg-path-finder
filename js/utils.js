@@ -28,6 +28,7 @@ var utils = (function(){
 	}
 
 	return {
+		getFactors: getFactors,
 		getCommonFactors : getCommonFactors,
 		getRandomInt : getRandomInt
 	}

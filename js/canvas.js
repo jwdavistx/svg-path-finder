@@ -163,25 +163,25 @@ var app = (function(){
 	}
 
 	function processImage(){
-		var x, y, canvasData;
-		var maxWorkers = 8, worker;
-		var width = canvas.width;
-		var height = canvas.height / maxWorkers;
-		
-		
-		for(var i = 0; i < maxWorkers; i++){
-			y = height * i;
-			canvasData = canvas.getContext('2d').getImageData(0, y, width, height);
-			//canvasData = canvas.getContext('2d').getImageData(0, 0, 16, 16);
+		var x, y, canvasData, worker;
+		var factors = utils.getFactors(getNumRows());
+		//Work is split in to evenly divisible rectangular portions, we're just picking the middle value for now!
+		var rowsPerWorker = factors[factors.length / 2];
+		var blockHeight = rowsPerWorker * tileSize;
+		var maxWorkers = canvas.height / blockHeight;
 
-			worker = new Worker('./js/processImageData.js');
+		for(var i = 1; i <= maxWorkers; i++){
+			y = blockHeight * i;
+			canvasData = canvas.getContext('2d').getImageData(0, y, canvas.width, blockHeight);
+
+			worker = new Worker('./js/workers/processImage.js');
 			worker.onmessage = onMessageResult;
 			worker.postMessage({ canvasData: canvasData, tileSize: tileSize, workerIndex: i });
 		}
 	}
 
 	function onMessageResult(e){
-		console.log("worker finished (", e.data.index, ")", e.data.result.length);
+		console.log("worker finished (", e.data.index, ") in", e.data.time, "ms with", e.data.result.length, "items");
 	}
 
 	function randomizeGrid(percentOfMax){
