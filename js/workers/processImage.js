@@ -1,6 +1,4 @@
 onmessage = function(e){
-	console.log('worker spawned:', e.data.workerIndex);
-
 	var result = processImage(e.data.imageData.data, { 
 		tileOffset: e.data.tileOffset,
 		tileSize: e.data.tileSize,
@@ -8,30 +6,28 @@ onmessage = function(e){
 		height: e.data.imageData.height
 	});
 
-	postMessage({ result: result, index: e.data.workerIndex, startedOn: performance.now() });
+	postMessage({ result: result });
 }
 
-function processImage(data, params){
+function processImage(data, args){
 	var results = [];
-	var r, g, b, a;
-	var row, col, baseOffset, offset, x, y;
-	var grayscaled = 0, totalBrightness = 0, darknessTolerance = 255 - (255 * .2);
-	var rowOffsetSize = data.length / params.height;
-	var pixelsPerTile = Math.pow(params.tileSize, 2);
+	var darknessTolerance = 255 - (255 * .2);
+	var rowOffsetSize = data.length / args.height;
+	var pixelsPerTile = Math.pow(args.tileSize, 2);
 	
 	//This [row, col] is relative to the pixel data sent to the worker!
-	for(row = 0; row < params.height / params.tileSize; row++){
-		for(col = 0; col < params.width / params.tileSize; col++){
-			totalBrightness = 0;
+	for(var row = 0; row < args.height / args.tileSize; row++){
+		for(var col = 0; col < args.width / args.tileSize; col++){
+			var totalBrightness = 0;
 			//Should be the top-left pixel offset of each tile
-			baseOffset = (params.tileSize * row * rowOffsetSize) + (params.tileSize * col * 4);
+			var baseOffset = (args.tileSize * row * rowOffsetSize) + (args.tileSize * col * 4);
 			//Process each row of pixels for current tile
-			for(y = 0; y < params.tileSize; y++){
-				for(x = 0; x < params.tileSize; x++){
-					offset = baseOffset + (x * 4);
-					r = data[offset], g = data[offset + 1], b = data[offset + 2], a = data[offset + 3];
+			for(var y = 0; y < args.tileSize; y++){
+				for(var x = 0; x < args.tileSize; x++){
+					var offset = baseOffset + (x * 4);
+					var r = data[offset], g = data[offset + 1], b = data[offset + 2], a = data[offset + 3];
 
-					grayscaled = rgbToGrayscale(r, g, b);
+					var grayscaled = rgbToGrayscale(r, g, b);
 					totalBrightness += getRgbBrightness(grayscaled, grayscaled, grayscaled);
 				}
 				//Advance offset to next row of pixels in the overall image
@@ -39,9 +35,9 @@ function processImage(data, params){
 			}
 
 			results.push({ 
-				row: row + params.tileOffset.row, 
+				row: row + args.tileOffset.row, 
 				column: col, 
-				isEmpty: (a < 255) ? true : Math.floor(totalBrightness / pixelsPerTile) > darknessTolerance 
+				isEmpty: Math.floor(totalBrightness / pixelsPerTile) > darknessTolerance 
 			});
 		}
 	}

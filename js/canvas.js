@@ -159,43 +159,40 @@ var app = (function(){
 	}
 
 	function findPath(){
-
 		processImage();
 	}
 
 	function processImage(){
-		var y, imageData, worker;
-		var factors = utils.getFactors(getNumRows());
 		//Work is split in to evenly divisible rectangular portions, we're just picking the middle value for now!
+		var factors = utils.getFactors(getNumRows());
 		var rowsPerWorker = factors[factors.length / 2];
 		var blockHeight = rowsPerWorker * tileSize;
 		var maxWorkers = canvas.height / blockHeight;
+		var workers = [];
 
 		for(var i = 0; i < maxWorkers; i++){
-			y = blockHeight * i;
-			imageData = canvas.getContext('2d').getImageData(0, y, canvas.width, blockHeight);
+			var y = blockHeight * i;
+			var imageData = canvas.getContext('2d').getImageData(0, y, canvas.width, blockHeight);
 
-			worker = new Worker('./js/workers/processImage.js');
-			worker.onmessage = onMessageResult;
-			worker.postMessage({
-				imageData: imageData, 
-				tileOffset: { column: 0, row: rowsPerWorker * i },
-				tileSize: tileSize, 
-				workerIndex: i 
-			});
+			workers.push($.doWork({ 
+				file: './js/workers/processImage.js', 
+				args: {
+					imageData: imageData, 
+					tileOffset: { column: 0, row: rowsPerWorker * i },
+					tileSize: tileSize
+				}
+			}));
 		}
+
+		$.when.apply($, workers).done(function(){
+			Array.prototype.slice.call(arguments).forEach(renderTiles);
+		});
 	}
 
-	function onMessageResult(e){
-		//console.log("worker finished (", e.data.index, ") in", performance.now() - e.data.startedOn, "ms with sizeOf", Math.floor(sizeof(e.data.result) / 1024), "Kb");
-		console.log("worker finished (", e.data.index, ")");
-		b(e.data.result);
-	}
-
-	function b(tiles){
-		tiles.forEach(function(e, i, a){
+	function renderTiles(tiles){
+		tiles.result.forEach(function(e, i, a){
 			if(!e.isEmpty){
-				canvas.add(createTile(e.column, e.row, tileType.blocked));	
+				canvas.add(createTile(e.column, e.row, tileType.blocked));
 			}
 		});
 
@@ -248,6 +245,27 @@ var app = (function(){
 
 		});
 	}
+
+	$.doWork = function(args) { 
+		var def = $.Deferred(function(dfd) {
+			var w;
+			if (window.Worker) {
+				var w = new Worker(args.file); 
+				w.onmessage = function(event) {
+					dfd.resolve(event.data); 
+				};
+				w.onerror = function(event) {
+					dfd.reject(event); 
+				};
+
+				w.postMessage(args.args);
+			} else {
+				console.error('no worker no worky');
+			}
+		});
+
+		return def.promise(); 
+	};
 
 	return {
 		initCanvas : initCanvas,
