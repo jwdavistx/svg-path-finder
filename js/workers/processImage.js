@@ -1,17 +1,14 @@
-self.onmessage = function(e){
+onmessage = function(e){
 	console.log('worker spawned:', e.data.workerIndex);
 
-	var start = new Date();
-
-	var result = processImage(e.data.canvasData.data, { 
+	var result = processImage(e.data.imageData.data, { 
+		tileOffset: e.data.tileOffset,
 		tileSize: e.data.tileSize,
-		width: e.data.canvasData.width,
-		height: e.data.canvasData.height
+		width: e.data.imageData.width,
+		height: e.data.imageData.height
 	});
 
-	var end = new Date() - start;
-
-	self.postMessage({ result: result, index: e.data.workerIndex, time: end });
+	postMessage({ result: result, index: e.data.workerIndex, startedOn: performance.now() });
 }
 
 function processImage(data, params){
@@ -37,12 +34,12 @@ function processImage(data, params){
 					grayscaled = rgbToGrayscale(r, g, b);
 					totalBrightness += getRgbBrightness(grayscaled, grayscaled, grayscaled);
 				}
-				//Advance offset to next row of pixels
+				//Advance offset to next row of pixels in the overall image
 				baseOffset += rowOffsetSize;
 			}
 
 			results.push({ 
-				row: row, 
+				row: row + params.tileOffset.row, 
 				column: col, 
 				result: (a < 255) ? true : Math.floor(totalBrightness / pixelsPerTile) > darknessTolerance 
 			});

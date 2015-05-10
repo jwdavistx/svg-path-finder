@@ -159,36 +159,42 @@ var app = (function(){
 	}
 
 	function findPath(){
+
 		processImage();
 	}
 
 	function processImage(){
-		var x, y, canvasData, worker;
+		var y, imageData, worker;
 		var factors = utils.getFactors(getNumRows());
 		//Work is split in to evenly divisible rectangular portions, we're just picking the middle value for now!
 		var rowsPerWorker = factors[factors.length / 2];
 		var blockHeight = rowsPerWorker * tileSize;
 		var maxWorkers = canvas.height / blockHeight;
 
-		for(var i = 1; i <= maxWorkers; i++){
+		for(var i = 0; i < maxWorkers; i++){
 			y = blockHeight * i;
-			canvasData = canvas.getContext('2d').getImageData(0, y, canvas.width, blockHeight);
+			imageData = canvas.getContext('2d').getImageData(0, y, canvas.width, blockHeight);
 
 			worker = new Worker('./js/workers/processImage.js');
 			worker.onmessage = onMessageResult;
-			worker.postMessage({ canvasData: canvasData, tileSize: tileSize, workerIndex: i });
+			worker.postMessage({
+				imageData: imageData, 
+				tileOffset: { column: 0, row: rowsPerWorker * i },
+				tileSize: tileSize, 
+				workerIndex: i 
+			});
 		}
 	}
 
 	function onMessageResult(e){
-		console.log("worker finished (", e.data.index, ") in", e.data.time, "ms with", e.data.result.length, "items");
+		console.log("worker finished (", e.data.index, ") in", performance.now() - e.data.startedOn, "ms with sizeOf", Math.floor(sizeof(e.data.result) / 1024), "Kb");
 	}
 
 	function randomizeGrid(percentOfMax){
 		var tile;
 		var blockedCount = 0;
 		var maxTiles = getNumCols() * getNumRows();
-		var density = maxTiles * percentOfMax;
+		var density = Math.floor(maxTiles * (percentOfMax / 100));
 		
 		while(blockedCount < density){
 			 tile = getRandomTile();
@@ -223,7 +229,7 @@ var app = (function(){
 		});
 
 		$('#randomize').click(function(){
-			randomizeGrid(.1);
+			randomizeGrid(10);
 		});
 
 		$(window).resize(function(){
