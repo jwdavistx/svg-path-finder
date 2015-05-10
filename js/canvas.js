@@ -187,7 +187,19 @@ var app = (function(){
 	}
 
 	function onMessageResult(e){
-		console.log("worker finished (", e.data.index, ") in", performance.now() - e.data.startedOn, "ms with sizeOf", Math.floor(sizeof(e.data.result) / 1024), "Kb");
+		//console.log("worker finished (", e.data.index, ") in", performance.now() - e.data.startedOn, "ms with sizeOf", Math.floor(sizeof(e.data.result) / 1024), "Kb");
+		console.log("worker finished (", e.data.index, ")");
+		b(e.data.result);
+	}
+
+	function b(tiles){
+		tiles.forEach(function(e, i, a){
+			if(!e.isEmpty){
+				canvas.add(createTile(e.column, e.row, tileType.blocked));	
+			}
+		});
+
+		canvas.renderAll();
 	}
 
 	function randomizeGrid(percentOfMax){
