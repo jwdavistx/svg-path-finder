@@ -28,7 +28,7 @@ function processImage(data, args){
 					var r = data[offset], g = data[offset + 1], b = data[offset + 2], a = data[offset + 3];
 
 					var grayscaled = rgbToGrayscale(r, g, b);
-					totalBrightness += getRgbBrightness(grayscaled, grayscaled, grayscaled);
+					totalBrightness += Math.floor(getRgbBrightness(grayscaled, grayscaled, grayscaled))
 				}
 				//Advance offset to next row of pixels in the overall image
 				baseOffset += rowOffsetSize;

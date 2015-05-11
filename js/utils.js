@@ -27,9 +27,23 @@ var utils = (function(){
 		return Math.floor(Math.random() * (max - min)) + min;
 	}
 
+	function createBlob(data){
+		var file;
+		var blobData = [JSON.stringify(data)];
+		var data = new Blob(blobData, { type: 'text/plain;charset=utf-8' });
+
+		if (file !== null) {
+			window.URL.revokeObjectURL(file);
+		}
+
+		file = window.URL.createObjectURL(data);
+		console.log(file);
+	}
+
 	return {
 		getFactors: getFactors,
 		getCommonFactors : getCommonFactors,
-		getRandomInt : getRandomInt
+		getRandomInt : getRandomInt,
+		createBlob : createBlob
 	}
 })();

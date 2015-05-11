@@ -10,48 +10,50 @@ var app = (function(){
 		path: 5
 	});
 
-	function initSvg(args){
+	function init(args){
 		inDebug = args.inDebug;
-		svg = Snap(args.element);
 
-		//TODO
-		//Get this dynamically?
-		svg.attr("width", args.width);
-		svg.attr("height", args.height);
+		var img = new Image();
+		img.onload = function(e){	
+			svg = Snap(args.svgSelector);
+			svg.attr("width", this.naturalWidth);
+			svg.attr("height", this.naturalHeight);
 
-		imageTest(args.imagePath, args.width, args.height);
+			setBackgroundImage(this.src, this.naturalWidth, this.naturalHeight);
 
-		grid = svg.group(svg.rect(0, 0, args.width, args.height).attr({ fill: 'transparent' })).click(onClickGrid);
+			var squareTiles = utils.getCommonFactors(this.naturalWidth, this.naturalHeight);
+			tileSize = squareTiles[2];
+			initTilesMatrix(tileSize);
 
-		//Only allow square tiles
-		var validTileSizes = utils.getCommonFactors(args.width, args.height);
-		tileSize = validTileSizes[0];
+			//A clickable surface that isn't the SVG element
+			grid = svg.group(svg.rect(0, 0, this.naturalWidth, this.naturalHeight).attr({ fill: 'transparent' })).click(onClickGrid);
 
-		//console.log('tileSize: ' + tileSize);
+			if(args.grid.doDraw){
+				drawGrid(tileSize, args.grid.lineAttr);
+			}
 
-		if(args.grid.doDraw){
-			drawGrid(tileSize, args.grid.lineAttr);	
+			//The order of these 2 things apparently matters, but I dunno why just yet
+			setViewBox();
+			setOriginOffset($("svg").offset());
+
+			translateImageToGrid(this);
 		}
-		
-		initTilesMatrix(tileSize);
 
-		setViewBox();
-		setOriginOffset($("svg").offset());
-
-		processImage(args.imagePath);
+		img.src = args.imagePath;
 	}
 
-	function processImage(imagePath){
+	//Load the image to a <canvas> element so that the pixel values can be mapped to tiles in the grid
+	function translateImageToGrid(img){
 		var factors = utils.getFactors(getNumRows());
 		var rowsPerWorker = factors[factors.length / 2];
-		//TODO
-		//Need to find a better way to split up the calls.  Gotta know when the image is loaded so we can process it.  How can I split that up?
-		var parser = new ImageParser({
-			imagePath: imagePath,
-			rowsPerWorker : rowsPerWorker,
-			tileSize: tileSize,
-			onProcessImageComplete: seedTileMatrixFromCanvasData
-		});
+		var parser = new ImageParser(img);
+
+		parser.processImage({
+				rowsPerWorker: rowsPerWorker,
+				tileSize: tileSize
+			},
+			seedTileMatrixFromCanvas
+		);
 	}
 
 	function setOriginOffset(offset){
@@ -86,7 +88,7 @@ var app = (function(){
 		}
 	}
 
-	function imageTest(imagePath, width, height){
+	function setBackgroundImage(imagePath, width, height){
 		svg.image(imagePath, 0, 0, width, height).attr({
 			preserveAspectRatio : "xMidYMin"
 		});
@@ -152,7 +154,7 @@ var app = (function(){
 		var localY = Math.floor(y / scale);
 
 		var tile = viewportToGrid(localX, localY);
-		if(inDebug) svg.circle(localX, localY, 1).attr({ fill: 'blue', stroke: 'black', strokeWidth: '.25' });
+		if(inDebug) svg.circle(localX, localY, .5).attr({ fill: 'blue', stroke: 'black', strokeWidth: '.25' });
 
 		createTile(tile.column, tile.row, tileType.blocked);
 	}
@@ -254,17 +256,10 @@ var app = (function(){
 		return matrix;
 	}
 
-	function seedTileMatrixFromCanvasData(processedImageData){
-		console.log('processed ' + processedImageData.length + ' tiles');
+	function seedTileMatrixFromCanvas(processedImageData){
 		if(inDebug){
-			var file;
-		    var data = new Blob([JSON.stringify(processedImageData)], {type: 'text/plain;charset=utf-8'});
-		    if (file !== null) {
-		      window.URL.revokeObjectURL(file);
-		    }
-
-		    file = window.URL.createObjectURL(data);
-		    console.log(file);
+			console.log('processed ' + processedImageData.length + ' tiles');
+			utils.createBlob(processedImageData);
 		}
 
 		processedImageData.forEach(function(e, i, a){
@@ -364,11 +359,18 @@ var app = (function(){
 		$(window).resize(function(){
 			setOriginOffset($("svg").offset());
 		});
+
+		$(document).ajaxStart(function(){
+			console.log('start');
+		});
+
+		$(document).ajaxStop(function(){
+			console.log('stop');
+		});
 	}
 
 	return{
-		initSvg : initSvg,
-		setOriginOffset: setOriginOffset,
+		init : init,
 		findPath : findPath,
 		resetGrid : resetGrid,
 		randomizeGrid : randomizeGrid,
@@ -379,16 +381,14 @@ var app = (function(){
 $(function(){
 	app.bindEventHandlers();
 
-	app.initSvg({
+	app.init({
 		inDebug: false,
-		element: '#grid',
-		width: 1400, 
-		height: 1640,
-		imagePath: './images/maze1.png',
+		svgSelector: '#grid',
+		imagePath: './images/maze3.png',
 		grid : {
 			doDraw: false,
 			lineAttr : {
-				stroke: 'transparent',
+				stroke: 'gray',
 				strokeWidth: 0.25
 			}
 		}
