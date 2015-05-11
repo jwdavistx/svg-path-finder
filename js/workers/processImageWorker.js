@@ -27,8 +27,12 @@ function processImage(data, args){
 					var offset = baseOffset + (x * 4);
 					var r = data[offset], g = data[offset + 1], b = data[offset + 2], a = data[offset + 3];
 
-					var grayscaled = rgbToGrayscale(r, g, b);
-					totalBrightness += Math.floor(getRgbBrightness(grayscaled, grayscaled, grayscaled))
+					if(a  < 255){
+						totalBrightness += 255;
+					} else{
+						var grayscaled = rgbToGrayscale(r, g, b);
+						totalBrightness += Math.floor(getRgbBrightness(grayscaled, grayscaled, grayscaled))	
+					}
 				}
 				//Advance offset to next row of pixels in the overall image
 				baseOffset += rowOffsetSize;

@@ -22,7 +22,7 @@ var app = (function(){
 			setBackgroundImage(this.src, this.naturalWidth, this.naturalHeight);
 
 			var squareTiles = utils.getCommonFactors(this.naturalWidth, this.naturalHeight);
-			tileSize = squareTiles[2];
+			tileSize = squareTiles[1];
 			initTilesMatrix(tileSize);
 
 			//A clickable surface that isn't the SVG element
@@ -382,11 +382,11 @@ $(function(){
 	app.bindEventHandlers();
 
 	app.init({
-		inDebug: false,
+		inDebug: true,
 		svgSelector: '#grid',
-		imagePath: './images/maze3.png',
+		imagePath: './images/maze2.png',
 		grid : {
-			doDraw: false,
+			doDraw: true,
 			lineAttr : {
 				stroke: 'gray',
 				strokeWidth: 0.25
