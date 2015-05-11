@@ -19,11 +19,13 @@ function processImage(data, args){
 	var pixelsPerTile = Math.pow(args.tileSize, 2);
 
 
-	var row = 0, rows = args.height / tileSize
-	var col = 0, cols = args.width / tileSize;
+	//var row = 0, rows = args.height / tileSize
+	//var col = 0, cols = args.width / tileSize;
 	//This [row, col] is relative to the pixel data sent to the worker!
-	while(row < rows){
-		while(col < cols){
+	//while(row < rows){
+		//while(col < cols){
+	for(var row = 0; row < args.height / tileSize; row++){
+		for(var col = 0; col < args.width / tileSize; col++){
 			var totalBrightness = 0;
 			//Should be the top-left pixel offset of each tile
 			var baseOffset = (tileSize * row * rowOffsetSize) + (tileSize * col * 4);
@@ -52,9 +54,9 @@ function processImage(data, args){
 				totalBrightness: totalBrightness 
 			});
 
-			col++
+			//col++
 		}
-		row++;
+		//row++;
 	}
 
 	return results;

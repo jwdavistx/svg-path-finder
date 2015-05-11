@@ -262,7 +262,7 @@ var app = (function(){
 			utils.createBlob(processedImageData);
 		}
 
-		processedImageData.forEach(function(e, i, a){
+		processedImageData.forEach(function(e){
 			if(!e.isEmpty){
 				tileMatrix[e.column][e.row].tileType = tileType.blocked;
 			}
@@ -284,7 +284,7 @@ var app = (function(){
 		//var grid = new PF.Grid(walkabilityMatrix);
 		var start = getTileByType(tileType.start);
 		var end = getTileByType(tileType.end);
-		var pathGrid = new PF.Grid(tileMatrix.length, tileMatrix[0].length);
+		var pathGrid = new PF.Grid(getNumCols(), getNumRows());
 		setWalkableTiles(pathGrid);
 
 		var finder = new PF.AStarFinder({
