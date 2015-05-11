@@ -1,4 +1,3 @@
-/// <reference path="./js/typings/snapsvg.d.ts" />
 var app = (function(){
 	var svg, origin, grid, tileSize, inDebug;
 	var numCols = 0, numRows = 0;
@@ -12,25 +11,43 @@ var app = (function(){
 		path: 5
 	});
 
-	function initSvg(params){
-		inDebug = params.inDebug;
-		svg = Snap(params.element);
-		svg.attr("width", params.width);
-		svg.attr("height", params.height);
+	function initSvg(args){
+		inDebug = args.inDebug;
+		svg = Snap(args.element);
 
-		imageTest(params.image, params.width, params.height);
+		//TODO
+		//Get this dynamically?
+		svg.attr("width", args.width);
+		svg.attr("height", args.height);
 
-		grid = svg.group(svg.rect(0, 0, params.width, params.height).attr({ fill: 'transparent' })).click(onClickGrid);
+		imageTest(args.imagePath, args.width, args.height);
+
+		grid = svg.group(svg.rect(0, 0, args.width, args.height).attr({ fill: 'transparent' })).click(onClickGrid);
 
 		//Only allow square tiles
-		var validTileSizes = utils.getCommonFactors(params.width, params.height);
+		var validTileSizes = utils.getCommonFactors(args.width, args.height);
 		tileSize = validTileSizes[4];
 
-		drawGrid(tileSize, params.grid.lineAttr);
+		drawGrid(tileSize, args.grid.lineAttr);
 		initTilesMatrix(tileSize);
 
 		setViewBox();
 		setOriginOffset($("svg").offset());
+
+		processImage(args.imagePath);
+	}
+
+	function processImage(imagePath){
+		var factors = utils.getFactors(numRows);
+		var rowsPerWorker = factors[factors.length / 2];
+		//TODO
+		//Need to find a better way to split up the calls.  Gotta know when the image is loaded so we can process it.  How can I split that up?
+		var parser = new ImageParser({
+			imagePath: imagePath,
+			rowsPerWorker : rowsPerWorker,
+			tileSize: tileSize,
+			onProcessImageComplete: seedTileMatrixFromCanvasData
+		});
 	}
 
 	function setOriginOffset(offset){
@@ -229,6 +246,14 @@ var app = (function(){
 		return matrix;
 	}
 
+	function seedTileMatrixFromCanvasData(processedImageData){
+		processedImageData.forEach(function(e, i, a){
+			if(!e.isEmpty){
+				tileMatrix[e.column][e.row].tileType = tileType.blocked;
+			}
+		});
+	}
+
 	function setWalkableTiles(grid){
 		tileMatrix.forEach(function(tiles){
 			tiles.forEach(function(tile){
@@ -335,14 +360,14 @@ $(function(){
 	app.bindEventHandlers();
 
 	app.initSvg({
-		inDebug: true,
+		inDebug: false,
 		element: '#grid',
 		width: 1400, 
 		height: 1640,
-		image: './images/maze1.png',
+		imagePath: './images/maze1.png',
 		grid : {
 			lineAttr : {
-				stroke: 'grey',
+				stroke: 'transparent',
 				strokeWidth: 0.25
 			}
 		}

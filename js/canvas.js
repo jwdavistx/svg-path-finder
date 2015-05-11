@@ -11,7 +11,6 @@ var app = (function(){
 	});
 
 	function initCanvas(params){
-		var size = getImageSize(params.image);
 		container = params.container;
 		canvas = new fabric.Canvas(params.canvas, { 
 			width: params.width, 

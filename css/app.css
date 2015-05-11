@@ -8,7 +8,7 @@ body{
 }
 
 svg{
-	border: 1px solid red;
+	border: 1px solid none;
 	margin: 0 auto;
 	display: block;
 }
