@@ -1,6 +1,5 @@
 var app = (function(){
 	var svg, origin, grid, tileSize, inDebug;
-	var numCols = 0, numRows = 0;
 	var tileMatrix = [];
 
 	var tileType = Object.freeze({
@@ -26,9 +25,14 @@ var app = (function(){
 
 		//Only allow square tiles
 		var validTileSizes = utils.getCommonFactors(args.width, args.height);
-		tileSize = validTileSizes[4];
+		tileSize = validTileSizes[0];
 
-		drawGrid(tileSize, args.grid.lineAttr);
+		//console.log('tileSize: ' + tileSize);
+
+		if(args.grid.doDraw){
+			drawGrid(tileSize, args.grid.lineAttr);	
+		}
+		
 		initTilesMatrix(tileSize);
 
 		setViewBox();
@@ -38,7 +42,7 @@ var app = (function(){
 	}
 
 	function processImage(imagePath){
-		var factors = utils.getFactors(numRows);
+		var factors = utils.getFactors(getNumRows());
 		var rowsPerWorker = factors[factors.length / 2];
 		//TODO
 		//Need to find a better way to split up the calls.  Gotta know when the image is loaded so we can process it.  How can I split that up?
@@ -95,13 +99,19 @@ var app = (function(){
 
 		for(var col = 0; col < width; col += tileSize){
 			grid.add(svg.line(col, bbox.y, col, height).attr(attr));
-			numCols++;
 		}
 
 		for(var row = 0; row < height; row += tileSize){
 			grid.add(svg.line(bbox.x, row, width, row).attr(attr));
-			numRows++;
 		}
+	}
+
+	function getNumRows(){
+		return svg.getBBox().height / tileSize;
+	}
+
+	function getNumCols(){
+		return svg.getBBox().width / tileSize;
 	}
 
 	//Given an (x, y) point on the viewport, return the tile at this coordinate
@@ -128,7 +138,7 @@ var app = (function(){
 	//Get the size of the tiles after any transformations have been applied to the SVG
 	function getActualTileSize(){
 		var rect = document.getElementById('grid').getBoundingClientRect();
-		return Math.floor(rect.width / numCols);
+		return Math.floor(rect.width / getNumCols());
 	}
 
 	function onClickGrid(mouseEvent, x, y){
@@ -233,12 +243,10 @@ var app = (function(){
 
 	function buildWalkabilityMatrix(){
 		var matrix = [];
-		var numCols = tileMatrix.length;
-		var numRows = tileMatrix[0].length;
 
-		for(var r = 0; r < numRows; r++){
+		for(var r = 0; r < getNumRows(); r++){
 			matrix.push([]);
-			for(var c = 0; c < numCols; c++){
+			for(var c = 0; c < getNumCols(); c++){
 				matrix[r][c] = tileMatrix[c][r].tileType == tileType.blocked ? 1 : 0;
 			}
 		}
@@ -247,6 +255,18 @@ var app = (function(){
 	}
 
 	function seedTileMatrixFromCanvasData(processedImageData){
+		console.log('processed ' + processedImageData.length + ' tiles');
+		if(inDebug){
+			var file;
+		    var data = new Blob([JSON.stringify(processedImageData)], {type: 'text/plain;charset=utf-8'});
+		    if (file !== null) {
+		      window.URL.revokeObjectURL(file);
+		    }
+
+		    file = window.URL.createObjectURL(data);
+		    console.log(file);
+		}
+
 		processedImageData.forEach(function(e, i, a){
 			if(!e.isEmpty){
 				tileMatrix[e.column][e.row].tileType = tileType.blocked;
@@ -366,6 +386,7 @@ $(function(){
 		height: 1640,
 		imagePath: './images/maze1.png',
 		grid : {
+			doDraw: false,
 			lineAttr : {
 				stroke: 'transparent',
 				strokeWidth: 0.25

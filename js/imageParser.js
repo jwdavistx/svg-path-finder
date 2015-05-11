@@ -1,6 +1,6 @@
 var ImageParser = (function(){
 	var canvas, context;
-	var workerPath = './js/workers/processImage.js';
+	var workerPath = './js/workers/processImageWorker.js';
 
 	var self = function(args){
 		initCanvas();
@@ -32,8 +32,6 @@ var ImageParser = (function(){
 
 	function processImage(args){
 		//Work is split in to evenly divisible rectangular portions, we're just picking the middle value for now!
-		//var factors = utils.getFactors(getNumRows());
-		//var rowsPerWorker = factors[factors.length / 2];
 		var blockHeight = args.rowsPerWorker * args.tileSize;
 		var maxWorkers = canvas.height / blockHeight;
 		var workers = [];

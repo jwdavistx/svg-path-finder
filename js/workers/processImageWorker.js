@@ -37,7 +37,8 @@ function processImage(data, args){
 			results.push({ 
 				row: row + args.tileOffset.row, 
 				column: col, 
-				isEmpty: Math.floor(totalBrightness / pixelsPerTile) > darknessTolerance 
+				isEmpty: Math.floor(totalBrightness / pixelsPerTile) > darknessTolerance,
+				totalBrightness: totalBrightness 
 			});
 		}
 	}
