@@ -11,24 +11,30 @@ onmessage = function(e){
 
 function processImage(data, args){
 	var results = [];
-	var darknessTolerance = 255 - (255 * .2);
+	var maxColor = 255;
+	var darknessTolerance = maxColor - (maxColor * .2);
+	var transparencyTolerance = Math.floor(maxColor / 2);
 	var rowOffsetSize = data.length / args.height;
+	var tileSize = args.tileSize;
 	var pixelsPerTile = Math.pow(args.tileSize, 2);
-	
+
+
+	var row = 0, rows = args.height / tileSize
+	var col = 0, cols = args.width / tileSize;
 	//This [row, col] is relative to the pixel data sent to the worker!
-	for(var row = 0; row < args.height / args.tileSize; row++){
-		for(var col = 0; col < args.width / args.tileSize; col++){
+	while(row < rows){
+		while(col < cols){
 			var totalBrightness = 0;
 			//Should be the top-left pixel offset of each tile
-			var baseOffset = (args.tileSize * row * rowOffsetSize) + (args.tileSize * col * 4);
+			var baseOffset = (tileSize * row * rowOffsetSize) + (tileSize * col * 4);
 			//Process each row of pixels for current tile
-			for(var y = 0; y < args.tileSize; y++){
-				for(var x = 0; x < args.tileSize; x++){
+			for(var y = 0; y < tileSize; y++){
+				for(var x = 0; x < tileSize; x++){
 					var offset = baseOffset + (x * 4);
 					var r = data[offset], g = data[offset + 1], b = data[offset + 2], a = data[offset + 3];
 
-					if(a  < 255){
-						totalBrightness += 255;
+					if(a  < transparencyTolerance){
+						totalBrightness += maxColor;
 					} else{
 						var grayscaled = rgbToGrayscale(r, g, b);
 						totalBrightness += Math.floor(getRgbBrightness(grayscaled, grayscaled, grayscaled))	
@@ -38,13 +44,17 @@ function processImage(data, args){
 				baseOffset += rowOffsetSize;
 			}
 
+			//This push could be slower on non-Chrome browsers
 			results.push({ 
 				row: row + args.tileOffset.row, 
 				column: col, 
 				isEmpty: Math.floor(totalBrightness / pixelsPerTile) > darknessTolerance,
 				totalBrightness: totalBrightness 
 			});
+
+			col++
 		}
+		row++;
 	}
 
 	return results;

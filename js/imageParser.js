@@ -29,8 +29,6 @@ var ImageParser = (function(){
 			var y = blockHeight * i;
 			var imageData = context.getImageData(0, y, canvas.width, blockHeight);
 
-			//utils.createBlob(imageData.data);
-
 			workers.push($.doWork({ 
 				file: workerPath, 
 				args: {

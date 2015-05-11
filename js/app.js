@@ -382,11 +382,11 @@ $(function(){
 	app.bindEventHandlers();
 
 	app.init({
-		inDebug: true,
+		inDebug: false,
 		svgSelector: '#grid',
-		imagePath: './images/maze2.png',
+		imagePath: './images/maze4.png',
 		grid : {
-			doDraw: true,
+			doDraw: false,
 			lineAttr : {
 				stroke: 'gray',
 				strokeWidth: 0.25
