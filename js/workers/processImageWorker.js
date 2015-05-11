@@ -12,18 +12,14 @@ onmessage = function(e){
 function processImage(data, args){
 	var results = [];
 	var maxColor = 255;
-	var darknessTolerance = maxColor - (maxColor * .2);
+	var darknessTolerance = Math.floor(maxColor - (maxColor * .5));
 	var transparencyTolerance = Math.floor(maxColor / 2);
 	var rowOffsetSize = data.length / args.height;
 	var tileSize = args.tileSize;
 	var pixelsPerTile = Math.pow(args.tileSize, 2);
 
 
-	//var row = 0, rows = args.height / tileSize
-	//var col = 0, cols = args.width / tileSize;
-	//This [row, col] is relative to the pixel data sent to the worker!
-	//while(row < rows){
-		//while(col < cols){
+	//This [row, col] is relative to the pixel data sent to the worker
 	for(var row = 0; row < args.height / tileSize; row++){
 		for(var col = 0; col < args.width / tileSize; col++){
 			var totalBrightness = 0;
@@ -50,13 +46,9 @@ function processImage(data, args){
 			results.push({ 
 				row: row + args.tileOffset.row, 
 				column: col, 
-				isEmpty: Math.floor(totalBrightness / pixelsPerTile) > darknessTolerance,
-				totalBrightness: totalBrightness 
+				isEmpty: Math.floor(totalBrightness / pixelsPerTile) > darknessTolerance
 			});
-
-			//col++
 		}
-		//row++;
 	}
 
 	return results;

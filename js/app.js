@@ -22,7 +22,7 @@ var app = (function(){
 			setBackgroundImage(this.src, this.naturalWidth, this.naturalHeight);
 
 			var squareTiles = utils.getCommonFactors(this.naturalWidth, this.naturalHeight);
-			tileSize = squareTiles[1];
+			tileSize = squareTiles[0];
 			initTilesMatrix(tileSize);
 
 			//A clickable surface that isn't the SVG element
@@ -257,10 +257,8 @@ var app = (function(){
 	}
 
 	function seedTileMatrixFromCanvas(processedImageData){
-		if(inDebug){
-			console.log('processed ' + processedImageData.length + ' tiles');
-			utils.createBlob(processedImageData);
-		}
+		console.log('processed ' + processedImageData.length + ' tiles');
+		utils.createBlob(processedImageData);
 
 		processedImageData.forEach(function(e){
 			if(!e.isEmpty){
@@ -287,25 +285,30 @@ var app = (function(){
 		var pathGrid = new PF.Grid(getNumCols(), getNumRows());
 		setWalkableTiles(pathGrid);
 
+		/*
+		var w = new Worker('./js/workers/findPathWorker.js');
+		w.postMessage({ start: start, end: end, grid: pathGrid.clone() });
+		w.onmessage = drawPath;		
+		*/
+
 		var finder = new PF.AStarFinder({
 			allowDiagonal: true,
-    		dontCrossCorners: true
-    	});
+	 		dontCrossCorners: true
+	 	});
 
-		var path = finder.findPath(start[0], start[1], end[0], end[1], pathGrid.clone());
-		//var smoothPath = PF.Util.smoothenPath(grid.clone(), path);
+		var path = finder.findPath(start[0], start[1], end[0], end[1], pathGrid);
 
-		if(path.length > 0){
-			drawPath(path);
-		} else{
-			alert("No path exists");
-		}		
+		drawPath(path);
 	}
 
 	function drawPath(path){
-		//Draw path between start/end tiles
-		for(var i = 1; i < path.length - 1; i++)
-			createTile(path[i][0], path[i][1], tileType.path);
+		if(path.length > 0){
+			//Draw path between start/end tiles
+			for(var i = 1; i < path.length - 1; i++)
+				createTile(path[i][0], path[i][1], tileType.path);
+		} else{
+			alert("No path exists");
+		}	
 	}
 
 	function randomizeGrid(percentOfMax){
@@ -384,7 +387,7 @@ $(function(){
 	app.init({
 		inDebug: false,
 		svgSelector: '#grid',
-		imagePath: './images/maze4.png',
+		imagePath: './images/TXN04_02FL.png',
 		grid : {
 			doDraw: false,
 			lineAttr : {
