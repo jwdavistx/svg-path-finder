@@ -11,8 +11,9 @@ Find the shortest path between 2 points, and render it to SVG.  The path finding
 * SVG magic is handled with [Snap SVG](http://snapsvg.io/)
 
 ## How To Run It
-* Install node
-* run http-server
-* navigate to localhost
+* install node
+* run `node install`
+* run `http-server -p ####''
+* navigate to `localhost:####`
 
 That's it!
