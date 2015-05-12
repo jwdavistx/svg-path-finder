@@ -1,5 +1,5 @@
 # svg-path-finder
-Playing around with Snap SVG, canvas and web workers.
+An attempt to get more comfortable with SVG, canvas and web worker things!
 
 ## What It Does
 Find the shortest path between 2 points, and render it to SVG.  The path finding is done with [qiao's pathfinding.js](https://github.com/qiao/PathFinding.js)
