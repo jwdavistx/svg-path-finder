@@ -22,7 +22,7 @@ var app = (function(){
 			setBackgroundImage(this.src, this.naturalWidth, this.naturalHeight);
 
 			var squareTiles = utils.getCommonFactors(this.naturalWidth, this.naturalHeight);
-			tileSize = squareTiles[0];
+			tileSize = squareTiles[4];
 			initTilesMatrix(tileSize);
 
 			//A clickable surface that isn't the SVG element
@@ -34,7 +34,7 @@ var app = (function(){
 
 			//The order of these 2 things apparently matters, but I dunno why just yet
 			setViewBox();
-			setOriginOffset($("svg").offset());
+			setOriginOffset();
 
 			translateImageToGrid(this);
 		}
@@ -56,11 +56,11 @@ var app = (function(){
 		);
 	}
 
-	function setOriginOffset(offset){
+	function setOriginOffset(){
 		//jQuery offset does not support getting the offset coordinates of hidden elements or accounting for borders, margins, or padding set on the body element
 		origin = {
-			x: Math.floor(offset.left),
-			y: Math.floor(offset.top)
+			x: Math.floor($("svg").offset().left),
+			y: Math.floor($("svg").offset().top)
 		};
 	}
 
@@ -285,25 +285,23 @@ var app = (function(){
 		var pathGrid = new PF.Grid(getNumCols(), getNumRows());
 		setWalkableTiles(pathGrid);
 
-		/*
-		var w = new Worker('./js/workers/findPathWorker.js');
-		w.postMessage({ start: start, end: end, grid: pathGrid.clone() });
-		w.onmessage = drawPath;		
-		*/
-
 		var finder = new PF.AStarFinder({
 			allowDiagonal: true,
 	 		dontCrossCorners: true
 	 	});
 
 		var path = finder.findPath(start[0], start[1], end[0], end[1], pathGrid);
-
 		drawPath(path);
+
+		/*
+		var w = new Worker('/js/workers/findPathWorker.js');
+		w.postMessage({ start: start, end: end, grid: pathGrid.clone() });
+		w.onmessage = drawPath;
+		*/
 	}
 
 	function drawPath(path){
 		if(path.length > 0){
-			//Draw path between start/end tiles
 			for(var i = 1; i < path.length - 1; i++)
 				createTile(path[i][0], path[i][1], tileType.path);
 		} else{
@@ -360,7 +358,7 @@ var app = (function(){
 		});
 
 		$(window).resize(function(){
-			setOriginOffset($("svg").offset());
+			setOriginOffset();
 		});
 
 		$(document).ajaxStart(function(){
@@ -387,7 +385,7 @@ $(function(){
 	app.init({
 		inDebug: false,
 		svgSelector: '#grid',
-		imagePath: './images/TXN04_02FL.png',
+		imagePath: './images/maze1.png',
 		grid : {
 			doDraw: false,
 			lineAttr : {
