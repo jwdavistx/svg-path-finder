@@ -1,0 +1,23 @@
+{
+  "name": "svg-path-finder",
+  "version": "1.0.0",
+  "description": "An attempt to get more comfortable with SVG, canvas and web worker things!",
+  "main": "index.html",
+  "dependencies": {
+    "http-server": "^0.8.0"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jwdavistx/svg-path-finder.git"
+  },
+  "author": "Jesse Davis",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/jwdavistx/svg-path-finder/issues"
+  },
+  "homepage": "https://github.com/jwdavistx/svg-path-finder"
+}
