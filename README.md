@@ -12,7 +12,7 @@ Find the shortest path between 2 points, and render it to SVG.  The path finding
 
 ## How To Run It
 * install node
-* run `node install`
+* run `npm install`
 * run `http-server -p ####'`
 * navigate to `localhost:####`
 
