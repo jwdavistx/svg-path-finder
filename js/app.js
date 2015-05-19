@@ -18,22 +18,15 @@ var app = (function(){
 			svg = Snap(args.svgSelector);
 			svg.attr("width", this.naturalWidth);
 			svg.attr("height", this.naturalHeight);
+			svg.attr("viewBox", [0, 0, this.naturalWidth, this.naturalHeight]);
 
 			setBackgroundImage(this.src, this.naturalWidth, this.naturalHeight);
 
 			var squareTiles = utils.getCommonFactors(this.naturalWidth, this.naturalHeight);
-			tileSize = squareTiles[4];
+			tileSize = squareTiles[3];
 			initTilesMatrix(tileSize);
+			initGrid(tileSize, args.grid.lineAttr);
 
-			//A clickable surface that isn't the SVG element
-			grid = svg.group(svg.rect(0, 0, this.naturalWidth, this.naturalHeight).attr({ fill: 'transparent' })).click(onClickGrid);
-
-			if(args.grid.doDraw){
-				drawGrid(tileSize, args.grid.lineAttr);
-			}
-
-			//The order of these 2 things apparently matters, but I dunno why just yet
-			setViewBox();
 			setOriginOffset();
 
 			translateImageToGrid(this);
@@ -64,13 +57,6 @@ var app = (function(){
 		};
 	}
 
-	function setViewBox(){
-		var bbox = svg.getBBox();
-		svg.attr("viewBox", [bbox.x, bbox.y, bbox.width, bbox.height]);
-		svg.width = bbox.width;
-		svg.height = bbox.height;
-	}
-
 	function initTilesMatrix(tileSize){
 		var maxCols = svg.getBBox().width / tileSize;
 		var maxRows = svg.getBBox().height / tileSize;
@@ -94,10 +80,18 @@ var app = (function(){
 		});
 	}
 
-	function drawGrid(tileSize, attr){
+	function toggleGrid(isVisible){
+
+	}
+
+	function initGrid(tileSize, attr){
 		var bbox = svg.getBBox(), line;
 		var left = tileSize, top = tileSize;
 		var width = bbox.width, height = bbox.height;
+
+		//A clickable surface that isn't the SVG element
+		grid = svg.group(svg.rect(0, 0, bbox.width, bbox.height).attr({ fill: 'transparent' })).click(onClickGrid);
+		grid.attr({ opacity: 0 }); //if visibility: hidden, then events wont fire?
 
 		for(var col = 0; col < width; col += tileSize){
 			grid.add(svg.line(col, bbox.y, col, height).attr(attr));
@@ -144,6 +138,7 @@ var app = (function(){
 	}
 
 	function onClickGrid(mouseEvent, x, y){
+		console.log('click');
 		var scale = getSvgScale();
 		//Mouse position relative to top-left of SVG container
 		var x = mouseEvent.pageX - origin.x;
@@ -239,7 +234,7 @@ var app = (function(){
 			case tileType.blocked: return "black"; break;
 			case tileType.start: return "lightgreen"; break;
 			case tileType.end: return "red"; break;
-			case tileType.path: return "yellow"; break;
+			case tileType.path: return "red"; break;
 		}
 	}
 
@@ -258,7 +253,9 @@ var app = (function(){
 
 	function seedTileMatrixFromCanvas(processedImageData){
 		console.log('processed ' + processedImageData.length + ' tiles');
-		utils.createBlob(processedImageData);
+		if(inDebug){
+			utils.createBlob(processedImageData);	
+		}		
 
 		processedImageData.forEach(function(e){
 			if(!e.isEmpty){
@@ -361,21 +358,33 @@ var app = (function(){
 			setOriginOffset();
 		});
 
-		$(document).ajaxStart(function(){
-			console.log('start');
-		});
-
-		$(document).ajaxStop(function(){
-			console.log('stop');
+		$('.btn-toggle').click(function() {
+			var btn = $(this).find('.btn');
+			
+			if ($(this).find('.btn-primary').size() > 0) {
+				btn.toggleClass('btn-primary');
+			}
+			if ($(this).find('.btn-danger').size() > 0) {
+				btn.toggleClass('btn-danger');
+			}
+			if ($(this).find('.btn-success').size() > 0) {
+				btn.toggleClass('btn-success');
+			}
+			if ($(this).find('.btn-info').size() > 0) {
+				btn.toggleClass('btn-info');
+			}
+		    
+			btn.toggleClass('active');
+			btn.toggleClass('btn-default');
+		       
 		});
 	}
 
 	return{
 		init : init,
 		findPath : findPath,
-		resetGrid : resetGrid,
-		randomizeGrid : randomizeGrid,
-		bindEventHandlers: bindEventHandlers
+		bindEventHandlers: bindEventHandlers,
+		toggleGrid : toggleGrid
 	}
 })();
 
@@ -385,9 +394,8 @@ $(function(){
 	app.init({
 		inDebug: false,
 		svgSelector: '#grid',
-		imagePath: './images/maze1.png',
+		imagePath: './images/maze4.png',
 		grid : {
-			doDraw: false,
 			lineAttr : {
 				stroke: 'gray',
 				strokeWidth: 0.25
