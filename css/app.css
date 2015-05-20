@@ -2,6 +2,10 @@ body{
 
 }
 
+.navbar-btn.btn-xs{
+	margin-left: 10px;
+}
+
 #buttons{
 	text-align: center
 }
@@ -10,6 +14,8 @@ svg{
 	border: 1px solid none;
 	margin: 0 auto;
 	display: block;
+	cursor: crosshair;
+	display: none;
 }
 
 .canvas-container{

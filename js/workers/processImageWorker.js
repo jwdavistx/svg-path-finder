@@ -38,6 +38,10 @@ function processImage(data, args){
 						totalBrightness += Math.floor(getRgbBrightness(grayscaled, grayscaled, grayscaled))	
 					}
 				}
+
+				//An attempt to leave the loop early
+				var isEmpty = Math.floor(totalBrightness / pixelsPerTile) > darknessTolerance;
+				if(isEmpty) break;
 				//Advance offset to next row of pixels in the overall image
 				baseOffset += rowOffsetSize;
 			}
@@ -46,7 +50,7 @@ function processImage(data, args){
 			results.push({ 
 				row: row + args.tileOffset.row, 
 				column: col, 
-				isEmpty: Math.floor(totalBrightness / pixelsPerTile) > darknessTolerance
+				isEmpty: isEmpty
 			});
 		}
 	}

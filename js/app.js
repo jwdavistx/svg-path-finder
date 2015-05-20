@@ -12,31 +12,36 @@ var app = (function(){
 
 	function init(args){
 		inDebug = args.inDebug;
+		$("#run, #reset").prop('disabled', true);
+	}
 
+	function loadImage(imagePath){
 		var img = new Image();
 		img.onload = function(e){	
 			svg = Snap(args.svgSelector);
-			svg.attr("width", this.naturalWidth);
-			svg.attr("height", this.naturalHeight);
-			svg.attr("viewBox", [0, 0, this.naturalWidth, this.naturalHeight]);
-
-			setBackgroundImage(this.src, this.naturalWidth, this.naturalHeight);
-
-			var squareTiles = utils.getCommonFactors(this.naturalWidth, this.naturalHeight);
-			tileSize = squareTiles[3];
-			initTilesMatrix(tileSize);
-			initGrid(tileSize, args.grid.lineAttr);
+			svg.attr({
+				width: this.naturalWidth,
+				height: this.naturalHeight,
+				viewBox: [0, 0, this.naturalWidth, this.naturalHeight],
+				preserveAspectRatio: 'xMaxYMax'
+			});
 
 			setOriginOffset();
+			setBackgroundImage(this.src, this.naturalWidth, this.naturalHeight);
 
-			translateImageToGrid(this);
+			tileSize = getTileSize();
+
+			initTilesMatrix(tileSize);
+			initGrid(tileSize, args.grid.lineAttr);			
+
+			translateImageToTileMatrix(this);
 		}
 
-		img.src = args.imagePath;
+		img.src = imagePath;
 	}
 
 	//Load the image to a <canvas> element so that the pixel values can be mapped to tiles in the grid
-	function translateImageToGrid(img){
+	function translateImageToTileMatrix(img){
 		var factors = utils.getFactors(getNumRows());
 		var rowsPerWorker = factors[factors.length / 2];
 		var parser = new ImageParser(img);
@@ -80,7 +85,7 @@ var app = (function(){
 		});
 	}
 
-	function toggleGrid(isVisible){
+	function toggleGridVisibility(isVisible){
 
 	}
 
@@ -100,6 +105,12 @@ var app = (function(){
 		for(var row = 0; row < height; row += tileSize){
 			grid.add(svg.line(bbox.x, row, width, row).attr(attr));
 		}
+	}
+
+	function getTileSize(){
+		var bbox = svg.getBBox();
+		var squareTiles = utils.getCommonFactors(bbox.width, bbox.height);
+		return squareTiles[2];
 	}
 
 	function getNumRows(){
@@ -138,7 +149,6 @@ var app = (function(){
 	}
 
 	function onClickGrid(mouseEvent, x, y){
-		console.log('click');
 		var scale = getSvgScale();
 		//Mouse position relative to top-left of SVG container
 		var x = mouseEvent.pageX - origin.x;
@@ -342,7 +352,7 @@ var app = (function(){
 	}
 
 	function bindEventHandlers(){
-		$('#find-path').click(function(){
+		$('#run').click(function(){
 			findPath();
 		});
 
@@ -384,7 +394,7 @@ var app = (function(){
 		init : init,
 		findPath : findPath,
 		bindEventHandlers: bindEventHandlers,
-		toggleGrid : toggleGrid
+		toggleGridVisibility : toggleGridVisibility
 	}
 })();
 
@@ -394,7 +404,7 @@ $(function(){
 	app.init({
 		inDebug: false,
 		svgSelector: '#grid',
-		imagePath: './images/maze4.png',
+		imagePath: null,
 		grid : {
 			lineAttr : {
 				stroke: 'gray',
