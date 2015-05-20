@@ -14,7 +14,7 @@ var app = (function(){
 		svg = Snap(args.svgSelector);
 
 		//$("#run, #reset").prop('disabled', true);
-		$("#randomize, #empty-grid").prop('disabled', true);
+		$("#randomize, #empty-grid, #tile-size").prop('disabled', true);
 
 		if(args.imagePath){
 			loadImage(args.imagePath);
@@ -34,10 +34,10 @@ var app = (function(){
 			setOriginOffset();
 			setBackgroundImage(this.src, this.naturalWidth, this.naturalHeight);
 
-			tileSize = getTileSize();
+			generateValidTileSizes();
 
 			initTilesMatrix(tileSize);
-			initGrid(tileSize);
+			initGrid(1);
 
 			translateImageToTileMatrix(this);
 		}
@@ -91,18 +91,23 @@ var app = (function(){
 	}
 
 	function toggleGridVisibility(isVisible){
-
+		grid.attr("opacity", isVisible ? 1 : 0);
 	}
 
 	function initGrid(tileSize){
+		console.log('initGrid', tileSize);
 		var bbox = svg.getBBox(), line;
 		var left = tileSize, top = tileSize;
 		var width = bbox.width, height = bbox.height;
-		var attr = { stroke: 'gray', strokeWidth: 0.25 };
+		var attr = { stroke: 'red', strokeWidth: .5 };
 
+		if(grid) {
+			grid.remove();
+			grid = null;
+		}
 		//A clickable surface that isn't the SVG element
 		grid = svg.group(svg.rect(0, 0, bbox.width, bbox.height).attr({ fill: 'transparent' })).click(onClickGrid);
-		grid.attr({ opacity: 0 }); //if visibility: hidden, then events wont fire?
+		grid.attr({ opacity: 1 }); //if visibility: hidden, then events wont fire?
 
 		for(var col = 0; col < width; col += tileSize){
 			grid.add(svg.line(col, bbox.y, col, height).attr(attr));
@@ -113,10 +118,25 @@ var app = (function(){
 		}
 	}
 
-	function getTileSize(){
+	function generateValidTileSizes(){
 		var bbox = svg.getBBox();
-		var squareTiles = utils.getCommonFactors(bbox.width, bbox.height);
-		return squareTiles[2];
+		var squareTilesSizes = utils.getCommonFactors(bbox.width, bbox.height);
+		populateTileSizeDropdown(squareTilesSizes);
+	}
+
+	function populateTileSizeDropdown(sizes){
+		var dropdown = $("#tile-size");
+		dropdown.empty();
+
+		sizes.forEach(function(e, i){
+			if(i === sizes.length / 2){
+				dropdown.append('<option selected="selected" value="' + e + '">' + e + '</option>');
+			} else{
+				dropdown.append('<option value="' + e + '">' + e + '</option>');	
+			}
+		});
+
+		dropdown.prop('disabled', false);
 	}
 
 	function getNumRows(){
@@ -374,6 +394,11 @@ var app = (function(){
 			randomizeGrid(.1);
 		});
 
+		$("#toggle-grid").click(function(){
+			var isVisible = grid.attr("opacity") > 0;
+			toggleGridVisibility(!isVisible);
+		});
+
 		$(window).resize(function(){
 			setOriginOffset();
 		});
@@ -401,6 +426,11 @@ var app = (function(){
 		$(".alert").click(function(){
 			$(this).closest('.alert').hide();
 		});
+
+		$("#tile-size").change(function(){
+			var tileSize = parseInt($(this).val());
+			initGrid(tileSize);
+		});
 	}
 
 	return{
@@ -416,6 +446,6 @@ $(function(){
 
 	app.init({
 		svgSelector: '#grid',
-		imagePath: './images/maze2.png'
+		imagePath: './images/maze4.png'
 	});
 });
