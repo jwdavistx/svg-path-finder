@@ -95,11 +95,10 @@ var app = (function(){
 	}
 
 	function initGrid(tileSize){
-		console.log('initGrid', tileSize);
 		var bbox = svg.getBBox(), line;
 		var left = tileSize, top = tileSize;
 		var width = bbox.width, height = bbox.height;
-		var attr = { stroke: 'red', strokeWidth: .5 };
+		var attr = { stroke: 'red', strokeWidth: .25 };
 
 		if(grid) {
 			grid.remove();
