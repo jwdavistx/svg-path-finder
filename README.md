@@ -2,7 +2,7 @@
 An attempt to get more comfortable with SVG, canvas and web worker things
 
 ## What
-Find the shortest path between 2 points, and render it to SVG.  The path finding is done with [qiao's pathfinding.js](https://github.com/qiao/PathFinding.js)
+Find the shortest path between 2 points of a supplied image, and then render the path. The path finding is done with [qiao's pathfinding.js](https://github.com/qiao/PathFinding.js)
 
 ## How
 * Loads an image to a `<canvas>` element
@@ -11,7 +11,7 @@ Find the shortest path between 2 points, and render it to SVG.  The path finding
 
 ## Run
 * install [node](https://nodejs.org/)
-* navigate to git directory
+* navigate to checkout directory
 * run `npm install`
 * run `node server.js`
 * navigate to `localhost:1234`
