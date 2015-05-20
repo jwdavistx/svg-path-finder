@@ -13,7 +13,8 @@ var app = (function(){
 	function init(args){
 		svg = Snap(args.svgSelector);
 
-		$("#run, #reset").prop('disabled', true);
+		//$("#run, #reset").prop('disabled', true);
+		$("#randomize, #empty-grid").prop('disabled', true);
 
 		if(args.imagePath){
 			loadImage(args.imagePath);
@@ -301,7 +302,13 @@ var app = (function(){
 	 	});
 
 		var path = finder.findPath(start[0], start[1], end[0], end[1], pathGrid);
-		drawPath(path);
+
+		if(path.length > 0){
+			drawPath(path);	
+		} else{
+			displayAlert("No path exists");
+		}
+		
 
 		/*
 		var w = new Worker('/js/workers/findPathWorker.js');
@@ -311,12 +318,8 @@ var app = (function(){
 	}
 
 	function drawPath(path){
-		if(path.length > 0){
-			for(var i = 1; i < path.length - 1; i++)
-				createTile(path[i][0], path[i][1], tileType.path);
-		} else{
-			displayAlert("No path exists");
-		}	
+		for(var i = 1; i < path.length - 1; i++)
+			createTile(path[i][0], path[i][1], tileType.path);
 	}
 
 	function randomizeGrid(percentOfMax){
@@ -356,7 +359,6 @@ var app = (function(){
 
 	function displayAlert(text){
 		$(".alert").text(text).show();
-
 	}
 
 	function bindEventHandlers(){
@@ -395,6 +397,10 @@ var app = (function(){
 			btn.toggleClass('active');
 			btn.toggleClass('btn-default');
 		});
+
+		$(".alert").click(function(){
+			$(this).closest('.alert').hide();
+		});
 	}
 
 	return{
@@ -410,6 +416,6 @@ $(function(){
 
 	app.init({
 		svgSelector: '#grid',
-		imagePath: './images/maze1.png'
+		imagePath: './images/maze2.png'
 	});
 });

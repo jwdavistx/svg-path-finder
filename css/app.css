@@ -1,8 +1,27 @@
 body{
+	padding-top: 60px;
+}
 
+.alert{
+	display: none;
+	cursor: pointer;
 }
 
 .navbar-btn.btn-xs{
+	margin-left: 10px;
+}
+
+.navbar-form{
+	margin-top: 14px;
+}
+
+label.navbar-link{
+	margin-left: 10px;
+}
+
+select.form-control{
+	height: 22px;
+	padding: 0;
 	margin-left: 10px;
 }
 

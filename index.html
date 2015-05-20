@@ -8,7 +8,7 @@
 	</head>
 	<body>
 
-		<nav class="navbar navbar-inverse navbar-static-top">
+		<nav class="navbar navbar-inverse navbar-fixed-top">
 			<div class="navbar-header">
 				<button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
 					<span class="sr-only">Toggle navigation</span>
@@ -30,15 +30,33 @@
 						<button id="load" class="btn btn-default btn-xs navbar-btn" data-target="#load-image-modal" data-toggle="modal">Load Image</button>
 					</li>
 					<li>
-						<a href="#" data-target="#settings-modal" data-toggle="modal"><span class="glyphicon glyphicon-cog"></span></a>
+						<button id="empty-grid" class="btn btn-default btn-xs navbar-btn" data-toggle="modal">Empty Grid</button>
+					</li>
+					<li>
+						<button id="randomize" class="btn btn-default btn-xs navbar-btn" data-toggle="modal">Randomize</button>
 					</li>
 				</ul>
+				<div class="navbar-form">
+					<label class="navbar-link" for="tile-size">Tile Size</label>
+					<select name="tile-size" id="tile-size" class="form-control">
+						<option value="1">1</option>
+						<option value="2">2</option>
+						<option value="3">3</option>
+						<option value="4">4</option>
+					</select>
+					<div class="checkbox navbar-btn">
+						<label class="navbar-link" for="display-grid">
+							<input type="checkbox" class="autosubmit" id="display-grid" value="false"> Grid
+						</label>
+					</div>
+				</div>
 			</div>
 		</nav>
 
 		<div class="container-fluid">
-			<div id="path-alert" class="alert alert-warning alert-dismissable fade" aria-hidden="true">
-			 	<a href="#" class="close" data-dismiss="alert">&times;</a>
+			<div id="path-alert" class="alert alert-warning" aria-hidden="true">
+			 	<a href="#" class="close">&times;</a>
+			 	<p></p>
 			</div>
 			<!--
 			<div class="jumbotron">
@@ -64,28 +82,6 @@
 					<div class="modal-footer">
 						<button type="button" class="btn btn-default btn-sm" data-dismiss="modal">Close</button>
 						<button type="button" class="btn btn-primary btn-sm">Load</button>
-					</div>
-				</div>
-			</div>
-		</div>
-
-		<div class="modal" id="settings-modal" tabindex="-1" role="dialog" aria-hidden="true">
-			<div class="modal-dialog modal-sm">
-				<div class="modal-content">
-					<div class="modal-header">
-						<button type="button" class="close" data-dismiss="modal"></button>
-						<h4 class="modal-title" id="myModalLabel">Settings</h4>
-					</div>
-					<div class="modal-body">
-						Grid<br/>
-						<div class="btn-group btn-toggle">
-    						<button class="btn btn-xs btn-default">On</button>
-    						<button class="btn btn-xs btn-success active">Off</button>
-    					</div>
-					</div>
-					<div class="modal-footer">
-						<button type="button" class="btn btn-default btn-sm" data-dismiss="modal">Close</button>
-						<button type="button" class="btn btn-primary btn-sm">Apply</button>
 					</div>
 				</div>
 			</div>
