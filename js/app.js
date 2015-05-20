@@ -1,5 +1,5 @@
 var app = (function(){
-	var svg, origin, grid, tileSize, inDebug;
+	var svg, origin, grid, tileSize;
 	var tileMatrix = [];
 
 	var tileType = Object.freeze({
@@ -11,14 +11,18 @@ var app = (function(){
 	});
 
 	function init(args){
-		inDebug = args.inDebug;
+		svg = Snap(args.svgSelector);
+
 		$("#run, #reset").prop('disabled', true);
+
+		if(args.imagePath){
+			loadImage(args.imagePath);
+		}
 	}
 
 	function loadImage(imagePath){
 		var img = new Image();
 		img.onload = function(e){	
-			svg = Snap(args.svgSelector);
 			svg.attr({
 				width: this.naturalWidth,
 				height: this.naturalHeight,
@@ -32,7 +36,7 @@ var app = (function(){
 			tileSize = getTileSize();
 
 			initTilesMatrix(tileSize);
-			initGrid(tileSize, args.grid.lineAttr);			
+			initGrid(tileSize);
 
 			translateImageToTileMatrix(this);
 		}
@@ -89,10 +93,11 @@ var app = (function(){
 
 	}
 
-	function initGrid(tileSize, attr){
+	function initGrid(tileSize){
 		var bbox = svg.getBBox(), line;
 		var left = tileSize, top = tileSize;
 		var width = bbox.width, height = bbox.height;
+		var attr = { stroke: 'gray', strokeWidth: 0.25 };
 
 		//A clickable surface that isn't the SVG element
 		grid = svg.group(svg.rect(0, 0, bbox.width, bbox.height).attr({ fill: 'transparent' })).click(onClickGrid);
@@ -159,7 +164,7 @@ var app = (function(){
 		var localY = Math.floor(y / scale);
 
 		var tile = viewportToGrid(localX, localY);
-		if(inDebug) svg.circle(localX, localY, .5).attr({ fill: 'blue', stroke: 'black', strokeWidth: '.25' });
+		//svg.circle(localX, localY, .5).attr({ fill: 'blue', stroke: 'black', strokeWidth: '.25' });
 
 		createTile(tile.column, tile.row, tileType.blocked);
 	}
@@ -189,7 +194,7 @@ var app = (function(){
 			column: column,
 			row: row,
 			fill: getTileColor(type),
-			opacity: inDebug ? '0.2' : '1'
+			opacity: 1
 		}).click(getTileClickHandler(type));
 
 		tileMatrix[column][row].tileType = type;
@@ -263,9 +268,7 @@ var app = (function(){
 
 	function seedTileMatrixFromCanvas(processedImageData){
 		console.log('processed ' + processedImageData.length + ' tiles');
-		if(inDebug){
-			utils.createBlob(processedImageData);	
-		}		
+		//utils.createBlob(processedImageData);		
 
 		processedImageData.forEach(function(e){
 			if(!e.isEmpty){
@@ -312,7 +315,7 @@ var app = (function(){
 			for(var i = 1; i < path.length - 1; i++)
 				createTile(path[i][0], path[i][1], tileType.path);
 		} else{
-			alert("No path exists");
+			displayAlert("No path exists");
 		}	
 	}
 
@@ -351,6 +354,11 @@ var app = (function(){
 		return getActualTileSize() / tileSize;
 	}
 
+	function displayAlert(text){
+		$(".alert").text(text).show();
+
+	}
+
 	function bindEventHandlers(){
 		$('#run').click(function(){
 			findPath();
@@ -386,7 +394,6 @@ var app = (function(){
 		    
 			btn.toggleClass('active');
 			btn.toggleClass('btn-default');
-		       
 		});
 	}
 
@@ -402,14 +409,7 @@ $(function(){
 	app.bindEventHandlers();
 
 	app.init({
-		inDebug: false,
 		svgSelector: '#grid',
-		imagePath: null,
-		grid : {
-			lineAttr : {
-				stroke: 'gray',
-				strokeWidth: 0.25
-			}
-		}
+		imagePath: './images/maze1.png'
 	});
 });

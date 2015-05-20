@@ -37,13 +37,18 @@
 		</nav>
 
 		<div class="container-fluid">
+			<div id="path-alert" class="alert alert-warning alert-dismissable fade" aria-hidden="true">
+			 	<a href="#" class="close" data-dismiss="alert">&times;</a>
+			</div>
+			<!--
 			<div class="jumbotron">
 				<form action="#" class="dropzone" id="uploaded-image"></form>
 			</div>
+			-->
 			<svg id="grid"></svg>
 		</div>
 
-		<div class="modal" id="load-image-modal" tabindex="-1" role="dialog">
+		<div class="modal" id="load-image-modal" tabindex="-1" role="dialog" aria-hidden="true">
 			<div class="modal-dialog modal-lg">
 				<div class="modal-content">
 					<div class="modal-header">
@@ -64,7 +69,7 @@
 			</div>
 		</div>
 
-		<div class="modal" id="settings-modal" tabindex="-1" role="dialog">
+		<div class="modal" id="settings-modal" tabindex="-1" role="dialog" aria-hidden="true">
 			<div class="modal-dialog modal-sm">
 				<div class="modal-content">
 					<div class="modal-header">

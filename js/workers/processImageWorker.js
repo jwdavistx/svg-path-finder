@@ -14,10 +14,10 @@ function processImage(data, args){
 	var maxColor = 255;
 	var darknessTolerance = Math.floor(maxColor - (maxColor * .5));
 	var transparencyTolerance = Math.floor(maxColor / 2);
+	//The imageData array is sequential, but we need to know where each new row of tiles starts
 	var rowOffsetSize = data.length / args.height;
 	var tileSize = args.tileSize;
 	var pixelsPerTile = Math.pow(args.tileSize, 2);
-
 
 	//This [row, col] is relative to the pixel data sent to the worker
 	for(var row = 0; row < args.height / tileSize; row++){
@@ -28,6 +28,7 @@ function processImage(data, args){
 			//Process each row of pixels for current tile
 			for(var y = 0; y < tileSize; y++){
 				for(var x = 0; x < tileSize; x++){
+					//Determine the offset for this specific pixel in the imageData (rows of tile pixels are not sequential in the imageData array)
 					var offset = baseOffset + (x * 4);
 					var r = data[offset], g = data[offset + 1], b = data[offset + 2], a = data[offset + 3];
 
@@ -40,9 +41,9 @@ function processImage(data, args){
 				}
 
 				//An attempt to leave the loop early
-				var isEmpty = Math.floor(totalBrightness / pixelsPerTile) > darknessTolerance;
-				if(isEmpty) break;
-				//Advance offset to next row of pixels in the overall image
+				var isBrighterThanTolerance = Math.floor(totalBrightness / pixelsPerTile) > darknessTolerance;
+				if(isBrighterThanTolerance) break;
+				//Advance offset to next row of pixels in the imageData array
 				baseOffset += rowOffsetSize;
 			}
 
@@ -50,7 +51,7 @@ function processImage(data, args){
 			results.push({ 
 				row: row + args.tileOffset.row, 
 				column: col, 
-				isEmpty: isEmpty
+				isEmpty: isBrighterThanTolerance
 			});
 		}
 	}

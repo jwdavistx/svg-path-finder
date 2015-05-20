@@ -15,7 +15,6 @@ svg{
 	margin: 0 auto;
 	display: block;
 	cursor: crosshair;
-	display: none;
 }
 
 .canvas-container{
