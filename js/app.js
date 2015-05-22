@@ -434,6 +434,21 @@ var app = (function(){
 				$("#toggle-grid").prop("disabled", false);
 			}
 		});
+
+		$("#grid").mouseenter(function(){
+			//$("#magnifier-container").show();
+		});
+
+		$("#grid").mouseleave(function(){
+			$("#magnifier-container").hide();
+		});
+
+		$("#grid").mousemove(function(e){
+			$("#magnifier-container").css({
+				top: (e.pageY + 5) + "px",
+				left: (e.pageX + 5) + "px"
+			});
+		});
 	}
 
 	return{
