@@ -1,5 +1,5 @@
 var app = (function(){
-	var svg, origin, grid, tileSize, image;
+	var svg, origin, grid, image;
 	var tileMatrix = [[]];
 
 	var tileType = Object.freeze({
@@ -12,7 +12,7 @@ var app = (function(){
 
 	function init(args){
 		svg = Snap(args.svgSelector);
-		$("#run, #reset, #randomize, #empty-grid, #tile-size, #toggle-grid").prop('disabled', true);
+		$("#clear, #load, #randomize, #empty-grid, #tile-size, #toggle-grid").prop('disabled', true);
 
 		if(args.imagePath){
 			loadImage(args.imagePath);
@@ -42,10 +42,11 @@ var app = (function(){
 	}
 
 	//Load the image to a <canvas> element so that the pixel values can be mapped to tiles in the grid
-	function processImage(tileSize, onProcessImageComplete){
+	function processImage(onProcessImageComplete){
 		var factors = utils.getFactors(getNumRows());
 		var rowsPerWorker = factors[factors.length / 2];
 		var parser = new ImageParser(image);
+		var tileSize = getTileSize();
 
 		parser.processImage({
 				rowsPerWorker: rowsPerWorker,
@@ -57,9 +58,10 @@ var app = (function(){
 
 	function setOriginOffset(){
 		//jQuery offset does not support getting the offset coordinates of hidden elements or accounting for borders, margins, or padding set on the body element
+		//However, I seemingly don't need to account for the 60px padding-top that exists?
 		origin = {
 			x: Math.floor($("svg").offset().left),
-			y: Math.floor($("svg").offset().top) + parseInt($("body").css("padding-top"))
+			y: Math.floor($("svg").offset().top)
 		};
 	}
 
@@ -78,7 +80,11 @@ var app = (function(){
 		var bbox = svg.getBBox(), line;
 		var left = tileSize, top = tileSize;
 		var width = bbox.width, height = bbox.height;
-		var attr = { stroke: 'red', strokeWidth: .25, opacity: 1 };
+		var attr = { 
+			stroke: 'red', 
+			strokeWidth: .5, 
+			opacity: 1 
+		};
 
 		if(grid) {
 			grid.remove();
@@ -115,15 +121,16 @@ var app = (function(){
 	}
 
 	function getNumRows(){
-		return svg.getBBox().height / tileSize;
+		return svg.getBBox().height / getTileSize();
 	}
 
 	function getNumCols(){
-		return svg.getBBox().width / tileSize;
+		return svg.getBBox().width / getTileSize();
 	}
 
 	//Given an (x, y) point on the viewport, return the tile at this coordinate
 	function viewportToGrid(x, y){
+		var tileSize = getTileSize();
 		//Get the closest top-left corner coordinates
 		var localX = x - (x % tileSize);
 		var localY = y - (y % tileSize);
@@ -137,6 +144,7 @@ var app = (function(){
 
 	//Given a [column, row] in the tile matrix, return the top-left point of that tile
 	function gridToViewport(column, row){
+		var tileSize = getTileSize();
 		var x = (column * tileSize);
 		var y = (row * tileSize);
 
@@ -160,7 +168,7 @@ var app = (function(){
 		var localY = Math.floor(y / scale);
 
 		var tile = viewportToGrid(localX, localY);
-		//svg.circle(localX, localY, .5).attr({ fill: 'blue', stroke: 'black', strokeWidth: '.25' }); //show mouse click position
+		//svg.circle(localX, localY, 5).attr({ fill: 'blue', stroke: 'black', strokeWidth: '.25' }); //show mouse click position
 
 		createTile(tile.column, tile.row, tileType.blocked);
 	}
@@ -186,6 +194,7 @@ var app = (function(){
 
 	function createTile(column, row, type){
 		var coord = gridToViewport(column, row);
+		var tileSize = getTileSize();
 		var tile = svg.rect(coord.x, coord.y, tileSize, tileSize).attr({
 			column: column,
 			row: row,
@@ -204,7 +213,7 @@ var app = (function(){
 		tile.tileType = tileType.empty;
 		tile.rect = null;
 		
-		rect.remove();
+		if(rect)	rect.remove();
 	}
 
 	function changeTileType(column, row, newType){
@@ -223,8 +232,8 @@ var app = (function(){
 	}
 
 	function getTileByType(type){
-		for(var c = 0; c < tileMatrix.length; c++){
-			for(var r = 0; r < tileMatrix[0].length; r++){
+		for(var c = 0; c < tileMatrix.length - 1; c++){
+			for(var r = 0; r < tileMatrix[0].length - 1; r++){
 				if( tileMatrix[c][r].tileType === type)
 					return [c, r];
 			}
@@ -245,8 +254,12 @@ var app = (function(){
 			case tileType.blocked: return "black"; break;
 			case tileType.start: return "lightgreen"; break;
 			case tileType.end: return "red"; break;
-			case tileType.path: return "red"; break;
+			case tileType.path: return "orange"; break;
 		}
+	}
+
+	function getTileSize(){
+		return parseInt($("#tile-size option:selected").val());
 	}
 
 	function buildWalkabilityMatrix(){
@@ -263,9 +276,10 @@ var app = (function(){
 	}
 
 	function initTileMatrix(tileSize){
+		var tileSize = getTileSize();
 		var maxCols = svg.getBBox().width / tileSize;
 		var maxRows = svg.getBBox().height / tileSize;
-		tileMatrix = [[]];
+		tileMatrix = [];
 
 		for(var c = 0; c < maxCols; c++){
 			tileMatrix.push([]);
@@ -284,7 +298,7 @@ var app = (function(){
 		console.log('processed ' + tiles.length + ' tiles');
 		//utils.createBlob(processedImageData);		
 
-		initTileMatrix(tileSize);
+		initTileMatrix(getTileSize());
 
 		tiles.forEach(function(e){
 			if(!e.isEmpty){
@@ -308,22 +322,26 @@ var app = (function(){
 		//var grid = new PF.Grid(walkabilityMatrix);
 		var start = getTileByType(tileType.start);
 		var end = getTileByType(tileType.end);
-		var pathGrid = new PF.Grid(getNumCols(), getNumRows());
-		setWalkableTiles(pathGrid);
 
-		var finder = new PF.AStarFinder({
-			allowDiagonal: true,
-	 		dontCrossCorners: true
-	 	});
+		if(start && end){
+			var pathGrid = new PF.Grid(getNumCols(), getNumRows());
+			setWalkableTiles(pathGrid);
 
-		var path = finder.findPath(start[0], start[1], end[0], end[1], pathGrid);
+			var finder = new PF.AStarFinder({
+				allowDiagonal: true,
+		 		dontCrossCorners: true
+		 	});
 
-		if(path.length > 0){
-			drawPath(path);	
+			var path = finder.findPath(start[0], start[1], end[0], end[1], pathGrid);
+
+			if(path.length > 0){
+				drawPath(path);	
+			} else{
+				displayAlert("No path exists");
+			}
 		} else{
-			displayAlert("No path exists");
+			displayAlert("Missing start/end points");
 		}
-		
 
 		/*
 		var w = new Worker('/js/workers/findPathWorker.js');
@@ -340,7 +358,7 @@ var app = (function(){
 	function randomizeGrid(percentOfMax){
 		var tile;
 		var blockedCount = 0;
-		var maxTiles = tileMatrix.length * tileMatrix[0].length;
+		var maxTiles = (tileMatrix.length - 1) * (tileMatrix[0].length - 1);
 		var density = maxTiles * (percentOfMax / 100);
 		
 		while(blockedCount < density){
@@ -353,23 +371,24 @@ var app = (function(){
 		}
 	}
 
-	function resetGrid(){
+	function resetPath(){
 		tileMatrix.forEach(function(tiles){
 			tiles.forEach(function(tile){
-				if(tile.tileType !== tileType.empty)
+				var t = tile.tileType;
+				if(t === tileType.path || t === tileType.start || t === tileType.end)
 					removeTile(tile.column, tile.row);
 			});
 		});
 	}
 
 	function getRandomTile(){
-		var maxCols = tileMatrix.length;
-		var maxRows = tileMatrix[0].length;
+		var maxCols = tileMatrix.length - 1;
+		var maxRows = tileMatrix[0].length - 1;
 		return tileMatrix[utils.getRandomInt(0, maxCols)][utils.getRandomInt(0, maxRows)];
 	}
 
 	function getSvgScale(){
-		return getActualTileSize() / tileSize;
+		return getActualTileSize() / getTileSize();
 	}
 
 	function displayAlert(text){
@@ -382,7 +401,11 @@ var app = (function(){
 		});
 
 		$('#reset').click(function(){
-			resetGrid();
+			resetPath();
+		});
+
+		$('#clear').click(function(){
+			clearGrid();
 		});
 
 		$('#randomize').click(function(){
@@ -404,11 +427,9 @@ var app = (function(){
 
 		$("#tile-size").change(function(e){
 			var i = $('option:selected', $(this)).index();
-			tileSize = parseInt($(this).val());
-
 			if(i > 0){
-				initGrid(tileSize);
-				processImage(tileSize, populateTileMatrix);
+				initGrid(getTileSize());
+				processImage(populateTileMatrix);
 
 				$("#toggle-grid").prop("disabled", false);
 			}
